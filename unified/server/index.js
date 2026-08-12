@@ -172,6 +172,19 @@ const requireStaff = (req, res, next) => {
 /* ----------------------------- app -------------------------------- */
 seedIfMissing()
 
+// Set/rotate the admin PIN from an env var (Railway Variable ADMIN_PIN) without
+// editing files. Re-applied on every boot, so changing the variable changes the PIN.
+if (process.env.ADMIN_PIN) {
+  const users = load('staffUsers', [])
+  const admin = users.find((u) => u.username === 'admin')
+  if (admin) {
+    admin.pinHash = Buffer.from(String(process.env.ADMIN_PIN)).toString('base64')
+    admin.failCount = 0
+    admin.lockUntil = 0
+    save('staffUsers', users)
+  }
+}
+
 const app = express()
 const port = process.env.PORT || 4000
 

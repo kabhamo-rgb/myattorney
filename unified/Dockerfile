@@ -22,6 +22,9 @@ ENV PORT=4000
 COPY --from=build /app/app/dist ./app/dist
 COPY --from=build /app/server ./server
 
+# NOTE: no Docker VOLUME here — Railway rejects it. Persistence is provided by a
+# Railway Volume attached to a mount path + DATA_DIR env (see README).
+
 EXPOSE 4000
 WORKDIR /app/server
 CMD ["node", "index.js"]
