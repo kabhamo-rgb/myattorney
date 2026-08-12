@@ -1,0 +1,16 @@
+{
+  "name": "myattorney-unified",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MyAttorney / קו-הדין — unified law-office platform (public site + client portal + staff back-office)",
+  "type": "module",
+  "scripts": {
+    "install:all": "npm --prefix app install && npm --prefix server install",
+    "build": "npm --prefix app install && npm --prefix app run build",
+    "start": "node server/index.js",
+    "postinstall": "npm --prefix app install && npm --prefix server install && npm --prefix app run build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

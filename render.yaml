@@ -1,0 +1,20 @@
+# Deploy to Render (https://render.com) — runs Node + a persistent disk for
+# uploads/data. Push this repo to GitHub, then "New > Blueprint" and point it here.
+services:
+  - type: web
+    name: myattorney
+    runtime: node
+    plan: starter          # starter includes a persistent disk; free plan does NOT persist files
+    buildCommand: npm --prefix app install && npm --prefix app run build && npm --prefix server install
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/server
+      sizeGB: 1
+    healthCheckPath: /health
+    autoDeploy: true
