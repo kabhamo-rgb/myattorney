@@ -78,6 +78,59 @@ const faqs = [
   },
 ]
 
+// Pricing for online form preparation + submission, by case type.
+// NOTE: placeholder prices — replace with the firm's real rates.
+const pricingTiers = [
+  {
+    name: 'בדיקת עיקול / עיקול ביתר',
+    price: '₪290',
+    tagline: 'הכלי המבוקש ביותר',
+    highlight: true,
+    features: [
+      'בדיקת יתרת חוב מול סכומים שנגבו',
+      'איתור גבייה/עיקול ביתר',
+      'הכנת בקשה לרשם ההוצאה לפועל',
+      'שליחה אונליין בשמך',
+    ],
+  },
+  {
+    name: 'הכנת טופס משפטי בודד',
+    price: '₪190',
+    tagline: 'מכתב דרישה / התראה / בקשה',
+    highlight: false,
+    features: [
+      'ניסוח טופס לפי סוג המקרה',
+      'התאמה אישית לפרטי התיק',
+      'קובץ מוכן להגשה',
+      'שליחה אונליין ליעד',
+    ],
+  },
+  {
+    name: 'סט טפסים לתיק שלם',
+    price: '₪490',
+    tagline: 'מספר מסמכים מקושרים',
+    highlight: false,
+    features: [
+      'סט טפסים מלא לפי סוג ההליך',
+      'בדיקת מסמכים נלווים',
+      'ליווי עד להגשה',
+      'שליחה וארכוב בתיק',
+    ],
+  },
+  {
+    name: 'שירות משפטי מלא',
+    price: 'לפי הצעה',
+    tagline: 'ליווי עורך דין מקצה לקצה',
+    highlight: false,
+    features: [
+      'פגישת ייעוץ עם עורך דין',
+      'ייצוג בהליך',
+      'ניהול מו"מ מול הצד השני',
+      'מענה עד סיום התיק',
+    ],
+  },
+]
+
 const initialForm = {
   name: '',
   email: '',
@@ -128,6 +181,7 @@ const buildImmediateDocumentAssessment = (file: File, rawText = '') => {
   const text = `${rawText} ${fileName}`.toLowerCase()
 
   const categories = [
+    { label: 'עיקולים/הוצאה לפועל', keywords: ['עיקול', 'עיקולים', 'עוקל', 'הוצאה לפועל', 'הוצל"פ', 'הוצלפ', 'גבייה', 'גביה', 'אזהרה', 'תיק איחוד', 'ריבית פיגורים', 'חשבון מוגבל', 'צו עיקול', 'כונס נכסים', 'רשם ההוצאה לפועל'] },
     { label: 'הסכם/חוזה', keywords: ['הסכם', 'חוזה', 'מסגרת', 'התחייבות', 'מכר', 'השכרה', 'שירות'] },
     { label: 'חיוב חריג', keywords: ['חיוב', 'עמלה', 'ריבית', 'כסף', 'חיוב חריג', 'סכום', 'תשלום'] },
     { label: 'דיני עבודה', keywords: ['פיטורים', 'שכר', 'העסקה', 'עבודה', 'שימוע', 'פיצויים'] },
@@ -136,6 +190,8 @@ const buildImmediateDocumentAssessment = (file: File, rawText = '') => {
     { label: 'ירושה/צוואה', keywords: ['צוואה', 'ירושה', 'עיזבון', 'יורש'] },
     { label: 'משפחה', keywords: ['גירושין', 'משמורת', 'מזונות', 'משפחה', 'ילד', 'בן זוג'] },
   ]
+
+  const isLiens = /עיקול|עוקל|הוצאה לפועל|הוצל"פ|הוצלפ|גבייה|גביה|כונס|רשם ההוצאה/.test(text)
 
   const matchedCategories = categories
     .filter(({ keywords }) => keywords.some((keyword) => text.includes(keyword)))
@@ -151,6 +207,9 @@ const buildImmediateDocumentAssessment = (file: File, rawText = '') => {
     'דרישה',
     'איום',
     'התראה',
+    'עיקול',
+    'עוקל',
+    'הוצאה לפועל',
   ].filter((signal) => text.includes(signal))
 
   const findings = [
@@ -160,14 +219,22 @@ const buildImmediateDocumentAssessment = (file: File, rawText = '') => {
     riskSignals.length > 0
       ? `נמצאו סמנים של ${riskSignals.slice(0, 3).join(', ')} הדורשים עיון יקרתי.`
       : 'לא נמצאו סמנים חריגים מיידיים, אך יש לבצע בדיקה מלאה של פרטי החיוב/ההתחייבות.',
-    'המסמך נבדק באמצעות עקרונות של זיהוי סוג מסמך, תוכן, דרישה וסיכון ראשוני.',
+    isLiens
+      ? 'זוהה הקשר של עיקול / הוצאה לפועל — מומלץ לבדוק אם נגבו כספים מעבר לחוב הפסוק (עיקול ביתר), ואם ננקטו הליכי גבייה כדין.'
+      : 'המסמך נבדק באמצעות עקרונות של זיהוי סוג מסמך, תוכן, דרישה וסיכון ראשוני.',
   ]
 
-  const recommendations = [
-    'לאמת האם יש סעיף של חיוב, עמלות, ריבית, פיצוי או דרישה כספית.',
-    'בדוק את תוקפו, מועדיו, התחייבויותיו ונספחיו של ההסכם או המסמך.',
-    'לברר אם נדרשת תגובה בכתב, שימוע, פנייה, דרישה או הגשת מסמך נוסף.',
-  ]
+  const recommendations = isLiens
+    ? [
+        'לבדוק את יתרת החוב המדויקת בתיק ההוצאה לפועל מול הסכומים שנגבו בפועל — כדי לאתר עיקול/גבייה ביתר.',
+        'לוודא שצו העיקול הומצא כדין ושלא עוקלו כספים מוגנים (משכורת עד תקרה, קצבאות, מזונות).',
+        'לשקול הגשת בקשה לרשם ההוצאה לפועל להשבת כספים שנגבו ביתר ו/או להפחתת/עיכוב הליכים.',
+      ]
+    : [
+        'לאמת האם יש סעיף של חיוב, עמלות, ריבית, פיצוי או דרישה כספית.',
+        'בדוק את תוקפו, מועדיו, התחייבויותיו ונספחיו של ההסכם או המסמך.',
+        'לברר אם נדרשת תגובה בכתב, שימוע, פנייה, דרישה או הגשת מסמך נוסף.',
+      ]
 
   const riskLevel = riskSignals.length > 0 ? 'סיכון בינוני-גבוה' : 'סיכון נמוך-בינוני'
 
@@ -182,6 +249,74 @@ const buildImmediateDocumentAssessment = (file: File, rawText = '') => {
     recommendations,
     riskLevel,
     nextStep: 'הדוח הוא הערכה ראשונית מקצועית בלבד ולא ייעוץ משפטי מחייב. לפרטים מדויקים יש צורך בבדיקה מעמיקה יותר.',
+  }
+}
+
+const buildImmediateQuestionAssessment = (rawQuestion: string) => {
+  const text = (rawQuestion || '').toLowerCase()
+
+  const topics: { label: string; keywords: string[]; recs: string[] }[] = [
+    {
+      label: 'עיקולים / הוצאה לפועל',
+      keywords: ['עיקול', 'עוקל', 'הוצאה לפועל', 'הוצל"פ', 'הוצלפ', 'גבייה', 'גביה', 'כונס', 'אזהרה', 'חשבון מוגבל'],
+      recs: [
+        'בדיקת יתרת החוב מול הסכומים שנגבו בפועל — לאיתור עיקול/גבייה ביתר.',
+        'בדיקה שלא עוקלו כספים מוגנים (שכר עד תקרה, קצבאות ביטוח לאומי, מזונות).',
+        'אפשרות להגיש בקשה לרשם ההוצאה לפועל להשבת כספים שנגבו ביתר או לעיכוב הליכים.',
+      ],
+    },
+    {
+      label: 'דיני עבודה',
+      keywords: ['פיטורים', 'שכר', 'שימוע', 'פיצויים', 'העסקה', 'מעביד', 'מעסיק', 'התפטרות', 'שעות נוספות'],
+      recs: [
+        'בדיקת זכאות לפיצויי פיטורים, הודעה מוקדמת וגמל.',
+        'בדיקה אם נערך שימוע כדין לפני הפיטורים.',
+        'איסוף תלושי שכר, הסכם העסקה והתכתבויות רלוונטיות.',
+      ],
+    },
+    {
+      label: 'חוזים והתחייבויות',
+      keywords: ['חוזה', 'הסכם', 'הפרה', 'ביטול', 'התחייבות', 'קנס', 'פיצוי מוסכם', 'שכירות', 'דירה'],
+      recs: [
+        'בדיקת סעיפי ההפרה, הפיצוי המוסכם ותנאי היציאה מההסכם.',
+        'תיעוד ההפרה ומשלוח דרישה/התראה מסודרת בכתב.',
+        'בדיקת מועדי התיישנות והתראה טרם נקיטת הליך.',
+      ],
+    },
+    {
+      label: 'נזיקין ותאונות',
+      keywords: ['תאונה', 'נזק', 'פגיעה', 'ביטוח', 'פיצוי', 'רשלנות'],
+      recs: [
+        'איסוף תיעוד רפואי, אישורי מחלה והוכחות נזק.',
+        'בדיקת אחריות הצד הפוגע וכיסוי ביטוחי רלוונטי.',
+        'בדיקת מועד ההתיישנות להגשת תביעה.',
+      ],
+    },
+  ]
+
+  const matched = topics.find((t) => t.keywords.some((k) => text.includes(k)))
+  const hasMoney = /כסף|סכום|תשלום|ריבית|חוב|₪|שקל|עמלה/.test(text)
+  const isLiens = matched?.label.startsWith('עיקולים')
+
+  const riskLevel = isLiens || hasMoney ? 'דורש בדיקה דחופה' : 'סיכון נמוך-בינוני'
+
+  return {
+    title: 'תשובה משפטית ראשונית מיידית',
+    summary: matched
+      ? `השאלה נוגעת בעיקר לתחום "${matched.label}". להלן הערכה ראשונית וצעדים מומלצים — אינה תחליף לייעוץ משפטי מלא.`
+      : 'זוהתה שאלה משפטית כללית. להלן כיווני בדיקה ראשוניים; לתשובה מדויקת נדרשת בחינה של המסמכים והנסיבות.',
+    findings: [
+      matched ? `תחום זוהה: ${matched.label}.` : 'לא זוהה תחום מובהק — נדרשת הבהרה של פרטי המקרה.',
+      hasMoney ? 'זוהה היבט כספי — יש לבחון סכומים, ריבית וחיובים אפשריים ביתר.' : 'לא זוהה היבט כספי מובהק בשאלה.',
+      'הבדיקה מבוצעת באופן מיידי לפי ניתוח מילולי של השאלה, כשלב מקדים לבדיקה מעמיקה.',
+    ],
+    recommendations: matched ? matched.recs : [
+      'לפרט את השתלשלות האירועים, התאריכים והצדדים המעורבים.',
+      'לאסוף כל מסמך רלוונטי (הסכם, מכתב, דרישה, אישור).',
+      'לבדוק מועדי התיישנות/תגובה לפני נקיטת צעד.',
+    ],
+    riskLevel,
+    nextStep: 'זוהי הערכה ראשונית אוטומטית ולא ייעוץ משפטי מחייב. להמשך — ניתן להעלות מסמך לבדיקה, לפנות לשירות מלא, או להזמין הכנת טפסים ושליחתם.',
   }
 }
 
@@ -468,6 +603,9 @@ function App() {
   const [auditDateRange, setAuditDateRange] = useState<'all' | '7' | '30'>('all')
   const [pendingDeleteDocument, setPendingDeleteDocument] = useState<DocumentRecord | null>(null)
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false)
+  const [heroTab, setHeroTab] = useState<'document' | 'question'>('document')
+  const [legalQuestion, setLegalQuestion] = useState('')
+  const [isCheckingQuestion, setIsCheckingQuestion] = useState(false)
 
   useEffect(() => {
     window.localStorage.setItem(selectedProfileStorageKey, selectedProfileId)
@@ -837,6 +975,36 @@ function App() {
       riskLevel: instantAssessment.riskLevel,
       nextStep: 'הערכת המסמך התבצעה באופן מיידי. ניתן להמשיך עם בדיקה מעמיקה יותר או לשלוח את הפרטים להמשך טיפול.',
     })
+  }
+
+  const handleQuestionSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!legalQuestion.trim()) {
+      setReviewResult({
+        title: 'לא הוזנה שאלה',
+        summary: 'כדי לקבל בדיקה מיידית יש להקליד את השאלה המשפטית.',
+        findings: ['לא הוזן טקסט'],
+        recommendations: ['נסח בקצרה מה קרה, מי הצדדים ומה מטריד אותך.'],
+        riskLevel: 'לא זמין',
+        nextStep: 'המערכת אינה יכולה לבצע בדיקה ללא שאלה.',
+      })
+      return
+    }
+    setIsCheckingQuestion(true)
+    // Immediate local assessment. Hook point for a real AI / legal-database engine.
+    const assessment = buildImmediateQuestionAssessment(legalQuestion)
+    setReviewResult(assessment)
+    setIsCheckingQuestion(false)
+  }
+
+  const startLiensCheck = () => {
+    setHeroTab('question')
+    setLegalQuestion('קיבלתי עיקול בהוצאה לפועל ואני רוצה לבדוק אם נגבו ממני כספים ביתר / מעבר לחוב.')
+    setReviewResult(buildImmediateQuestionAssessment('עיקול הוצאה לפועל כסף ביתר חוב'))
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('legal-tool')
+      if (el) el.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 
   const handleLegalFormChange = (
@@ -1279,73 +1447,120 @@ function App() {
         </div>
 
         <nav className="main-nav" aria-label="כותרת עיקרית">
+          <a href="#legal-tool">בדיקה מיידית</a>
+          <a href="#pricing">תמחור</a>
           <a href="#services">שירותים</a>
           <a href="#portal">אזור לקוח</a>
-          <a href="#about">אודות</a>
-          <a href="#team">צוות</a>
           <a href="#faq">שאלות נפוצות</a>
           <a href="#contact">צור קשר</a>
           <a href="#staff" className="staff-link">אזור צוות</a>
         </nav>
 
-        <a className="primary-btn" href="#contact">
-          ייעוץ ראשוני
+        <a className="primary-btn" href="#legal-tool">
+          בדיקה מיידית
         </a>
       </header>
 
       <main>
-        <section className="hero section">
-          <div className="hero-copy">
-            <p className="eyebrow">משרד עורכי דין • ייעוץ פרואקטיבי</p>
-            <h1>ליווי משפטי שמחזיר שליטה, ביטחון ויעילות לכל החלטה.</h1>
+        <section id="legal-tool" className="hero-tool section">
+          <div className="hero-tool-intro">
+            <p className="eyebrow">בדיקה משפטית מיידית • ללא התחייבות</p>
+            <h1>העלה מסמך או שאל שאלה — וקבל בדיקה משפטית ראשונית תוך שניות.</h1>
             <p className="hero-text">
-              MyAttorney הוא משרד עורכי דין המלווה לקוחות פרטיים, חברות וארגונים בכל שלב של
-              ההליך — משלב הייעוץ הראשוני, דרך ניהול המשא ומתן ועד לניהול הליכים מורכבים מול
-              צדדים שונים ובתי משפט.
+              המערכת בודקת את המסמך או השאלה, מזהה את סוג העניין ואת נקודות הסיכון, ומחזירה
+              דוח ראשוני עם צעדים מומלצים. מכאן ניתן להמשיך לשירות מלא של המשרד או להזמנת
+              הכנת טפסים ושליחתם אונליין — בעלות לפי סוג התיק.
             </p>
-
-            <div className="cta-row">
-              <a className="primary-btn" href="#contact">
-                קביעת פגישה
-              </a>
-              <a className="secondary-btn" href="#services">
-                השירותים שלנו
-              </a>
-            </div>
-
-            <div className="hero-meta">
-              <span>עסקאות • נזיקין • משפחה • עבודה • הסכמים</span>
-            </div>
-
-            <div className="hero-pills" aria-label="תחומי מומחיות">
-              <span>הסכמים</span>
-              <span>תביעות</span>
-              <span>שימוע</span>
-              <span>ייעוץ עסקי</span>
+            <div className="hero-chips">
+              <button type="button" className="hero-chip hero-chip-strong" onClick={startLiensCheck}>
+                🔎 בדיקת עיקול / עיקול כספים ביתר
+              </button>
+              <button type="button" className="hero-chip" onClick={() => setHeroTab('document')}>📄 בדיקת מסמך</button>
+              <button type="button" className="hero-chip" onClick={() => setHeroTab('question')}>⚖️ שאלה משפטית</button>
+              <a className="hero-chip" href="#pricing">🧾 הכנת טפסים ושליחה</a>
             </div>
           </div>
 
-          <div className="hero-panel" aria-label="כרטיס משרד">
-            <div className="panel-card card-primary">
-              <p className="panel-label">מקרה בולט</p>
-              <h2>הסדר עסקי עם מענה מקצועי ופרואקטיבי</h2>
-              <div className="progress-row">
-                <span>התקדמות</span>
-                <strong>92%</strong>
-              </div>
-              <div className="progress-bar">
-                <span></span>
-              </div>
-              <div className="mini-tags">
-                <span>דיני חברות</span>
-                <span>הסכמים</span>
-              </div>
+          <div className="tool-card">
+            <div className="tool-tabs" role="tablist">
+              <button type="button" role="tab" className={heroTab === 'document' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('document')}>
+                📄 בדיקת מסמך
+              </button>
+              <button type="button" role="tab" className={heroTab === 'question' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('question')}>
+                ⚖️ שאלה משפטית
+              </button>
             </div>
 
-            <div className="panel-card card-floating">
-              <p>ייעוץ דחוף</p>
-              <strong>+972 54 000 0000</strong>
-            </div>
+            {heroTab === 'document' ? (
+              <form className="tool-form" onSubmit={handleDocumentReview}>
+                <label className="file-upload-box">
+                  <span>בחר קובץ לבדיקה (PDF, Word, TXT)</span>
+                  <input type="file" accept=".pdf,.doc,.docx,.txt,.rtf" onChange={handleFileUpload} />
+                </label>
+                {uploadedFile ? (
+                  <div className="file-meta"><strong>הקובץ שנבחר:</strong><span>{uploadedFile.name}</span></div>
+                ) : (
+                  <div className="file-meta muted"><strong>לא נבחר מסמך עדיין.</strong></div>
+                )}
+                <button type="submit" className="primary-btn submit-btn" disabled={isUploadingDocument}>
+                  {isUploadingDocument ? 'מעלה ובודק...' : '🔎 בדוק מסמך עכשיו'}
+                </button>
+              </form>
+            ) : (
+              <form className="tool-form" onSubmit={handleQuestionSubmit}>
+                <label className="tool-question-label">
+                  <span>תאר את השאלה או המצב המשפטי</span>
+                  <textarea
+                    rows={5}
+                    value={legalQuestion}
+                    onChange={(event) => setLegalQuestion(event.target.value)}
+                    placeholder="לדוגמה: קיבלתי עיקול בהוצאה לפועל — איך אדע אם גבו ממני יותר מדי?"
+                  />
+                </label>
+                <button type="submit" className="primary-btn submit-btn" disabled={isCheckingQuestion}>
+                  {isCheckingQuestion ? 'בודק...' : '⚖️ קבל בדיקה מיידית'}
+                </button>
+              </form>
+            )}
+
+            <p className="tool-disclaimer">
+              בדיקה מיידית ואוטומטית — הערכה ראשונית בלבד, אינה מהווה ייעוץ משפטי מחייב.
+            </p>
+
+            {reviewResult && (
+              <div className="review-result" aria-live="polite">
+                <div className="report-header">
+                  <h3>{reviewResult.title}</h3>
+                  <span className="risk-pill">{reviewResult.riskLevel}</span>
+                </div>
+                <p>{reviewResult.summary}</p>
+
+                <div className="result-block">
+                  <strong>ממצאים</strong>
+                  <ul>
+                    {reviewResult.findings.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="result-block">
+                  <strong>המלצות</strong>
+                  <ul>
+                    {reviewResult.recommendations.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <strong>{reviewResult.nextStep}</strong>
+
+                <div className="result-cta">
+                  <a className="primary-btn" href="#pricing">🧾 הכנת טפסים ושליחה אונליין</a>
+                  <a className="secondary-btn" href="#contact">המשך לשירות מלא של המשרד</a>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -1553,63 +1768,41 @@ function App() {
           </form>
         </section>
 
-        <section className="section upload-section" aria-label="העלאת מסמך לבדיקה">
+        <section className="section how-section" aria-label="איך זה עובד">
           <div className="section-header">
-            <p className="eyebrow">בדיקת מסמכים</p>
-            <h2>העלה מסמך ותקבל תשובת בדיקה ראשונית</h2>
+            <p className="eyebrow">איך זה עובד</p>
+            <h2>משלוש דקות של בדיקה — לפעולה משפטית</h2>
           </div>
+          <div className="how-grid">
+            <div className="how-step"><span className="how-num">1</span><strong>מעלים מסמך או שואלים</strong><p>מסמך שקיבלת (עיקול, דרישה, חוזה) או שאלה חופשית.</p></div>
+            <div className="how-step"><span className="how-num">2</span><strong>מקבלים בדיקה מיידית</strong><p>זיהוי סוג העניין, נקודות סיכון וצעדים מומלצים — תוך שניות.</p></div>
+            <div className="how-step"><span className="how-num">3</span><strong>ממשיכים לפעולה</strong><p>הכנת טפסים ושליחה אונליין, או שירות משפטי מלא של המשרד.</p></div>
+          </div>
+        </section>
 
-          <form className="upload-form" onSubmit={handleDocumentReview}>
-            <label className="file-upload-box">
-              <span>בחר קובץ</span>
-              <input type="file" accept=".pdf,.doc,.docx,.txt,.rtf" onChange={handleFileUpload} />
-            </label>
-
-            {uploadedFile ? (
-              <div className="file-meta">
-                <strong>הקובץ שנבחר:</strong>
-                <span>{uploadedFile.name}</span>
+        <section id="pricing" className="section pricing-section" aria-label="תמחור לפי סוג תיק">
+          <div className="section-header">
+            <p className="eyebrow">הכנת טפסים ושליחה אונליין</p>
+            <h2>עלות לפי סוג התיק</h2>
+            <p>בוחרים שירות, אנחנו מכינים ושולחים בשמך. מחירים סופיים יוצגו לפני התשלום.</p>
+          </div>
+          <div className="pricing-grid">
+            {pricingTiers.map((tier) => (
+              <div key={tier.name} className={`pricing-card${tier.highlight ? ' featured' : ''}`}>
+                {tier.highlight && <span className="pricing-badge">{tier.tagline}</span>}
+                <h3>{tier.name}</h3>
+                {!tier.highlight && <p className="pricing-tagline">{tier.tagline}</p>}
+                <div className="pricing-price">{tier.price}</div>
+                <ul>
+                  {tier.features.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+                <a className={tier.highlight ? 'primary-btn' : 'secondary-btn'} href="#contact">להזמנה</a>
               </div>
-            ) : (
-              <div className="file-meta muted">
-                <strong>לא נבחר מסמך עדיין.</strong>
-              </div>
-            )}
-
-            <button type="submit" className="primary-btn submit-btn" disabled={isUploadingDocument}>
-              {isUploadingDocument ? 'מעלה ובודק...' : 'בדוק מסמך'}
-            </button>
-
-            {reviewResult && (
-              <div className="review-result" aria-live="polite">
-                <div className="report-header">
-                  <h3>{reviewResult.title}</h3>
-                  <span className="risk-pill">{reviewResult.riskLevel}</span>
-                </div>
-                <p>{reviewResult.summary}</p>
-
-                <div className="result-block">
-                  <strong>ממצאים</strong>
-                  <ul>
-                    {reviewResult.findings.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="result-block">
-                  <strong>המלצות</strong>
-                  <ul>
-                    {reviewResult.recommendations.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <strong>{reviewResult.nextStep}</strong>
-              </div>
-            )}
-          </form>
+            ))}
+          </div>
+          <p className="pricing-note">* המחירים להמחשה — יש לעדכן לתעריפי המשרד בפועל.</p>
         </section>
 
         <section id="portal" className="section portal-section" aria-label="לוח לקוח אישי">
