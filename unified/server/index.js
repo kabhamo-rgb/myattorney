@@ -667,7 +667,7 @@ app.get('/api/leads', requireStaff, (req, res) => {
 
 app.patch('/api/leads/:id', requireStaff, (req, res) => {
   const { id } = req.params
-  const { status, owner } = req.body || {}
+  const { status, owner, note, followUp } = req.body || {}
   const leads = load('leads', [])
   const lead = leads.find((l) => l.id === id)
   if (!lead) {
@@ -677,10 +677,46 @@ app.patch('/api/leads/:id', requireStaff, (req, res) => {
   const before = lead.status
   if (typeof status === 'string') lead.status = status
   if (typeof owner === 'string') lead.owner = owner
+  if (typeof note === 'string') lead.note = note
+  if (typeof followUp === 'string') lead.followUp = followUp
   lead.updatedAt = new Date().toISOString()
   save('leads', leads)
   appendAudit({ area: 'leads', action: 'lead_updated', actor: req.staff.username, detail: `${lead.name} | ${before} -> ${lead.status}`, refId: lead.id })
   res.json({ success: true, lead })
+})
+
+// CRM overview — funnel metrics for the dashboard.
+app.get('/api/crm/overview', requireStaff, (_req, res) => {
+  const leads = load('leads', [])
+  const audit = load('audit', [])
+  const byStatus = (s) => leads.filter((l) => l.status === s).length
+  const refunds = leads.filter((l) => l.type === 'refund' || l.source === 'בקשת החזר')
+  const overpaidTotal = refunds.reduce((sum, l) => sum + (Number(l.refund?.estimatedOverpaid) || 0), 0)
+  const payments = audit.filter((a) => a.action === 'checkout_created')
+  const analyses = audit.filter((a) => a.action === 'ai_analyze').length
+  const total = leads.length
+  const closed = byStatus('closed')
+  const converted = leads.filter((l) => l.status === 'booked' || l.status === 'closed').length
+  res.json({
+    leads: { total, new: byStatus('new'), active: byStatus('active'), booked: byStatus('booked'), closed },
+    conversionRate: total ? Math.round((converted / total) * 100) : 0,
+    refunds: { count: refunds.length, estimatedTotal: overpaidTotal },
+    payments: { count: payments.length },
+    aiAnalyses: analyses,
+    fromSite: leads.filter((l) => l.source === 'אתר').length,
+  })
+})
+
+// Refund requests (a filtered leads view for the CRM).
+app.get('/api/crm/refunds', requireStaff, (_req, res) => {
+  const leads = load('leads', [])
+  res.json({ refunds: leads.filter((l) => l.type === 'refund' || l.source === 'בקשת החזר') })
+})
+
+// Payments feed (from audit).
+app.get('/api/crm/payments', requireStaff, (_req, res) => {
+  const audit = load('audit', [])
+  res.json({ payments: audit.filter((a) => a.action === 'checkout_created').slice(0, 100) })
 })
 
 app.delete('/api/leads/:id', requireStaff, (req, res) => {
