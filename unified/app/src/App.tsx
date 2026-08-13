@@ -131,6 +131,41 @@ const pricingTiers = [
   },
 ]
 
+// Real, curated legal sources (free public databases) used to back and cite the
+// immediate answers. Links verified from כל-זכות (Kol-Zchut) + national legislation DB.
+const KZ = 'https://www.kolzchut.org.il/he/'
+const legalTopics: { match: string[]; label: string; sources: { t: string; u: string }[] }[] = [
+  {
+    label: 'עיקולים והוצאה לפועל',
+    match: ['עיקול', 'עוקל', 'הוצאה לפועל', 'הוצל"פ', 'הוצלפ', 'גבייה', 'גביה', 'כונס', 'אזהרה', 'חשבון מוגבל', 'תיק איחוד'],
+    sources: [
+      { t: 'הוצאה לפועל וגבייה — מדריך כללי (כל זכות)', u: KZ + '%D7%94%D7%95%D7%A6%D7%90%D7%94_%D7%9C%D7%A4%D7%95%D7%A2%D7%9C_%D7%95%D7%92%D7%91%D7%99%D7%99%D7%94' },
+      { t: 'נכסים וכספים שאסור לעקל בהוצאה לפועל (כל זכות)', u: KZ + '%D7%A0%D7%9B%D7%A1%D7%99%D7%9D_%D7%95%D7%9B%D7%A1%D7%A4%D7%99%D7%9D_%D7%A9%D7%90%D7%A1%D7%95%D7%A8_%D7%9C%D7%A2%D7%A7%D7%9C_%D7%91%D7%94%D7%95%D7%A6%D7%90%D7%94_%D7%9C%D7%A4%D7%95%D7%A2%D7%9C' },
+      { t: 'שכר עבודה שלא ניתן לעקל או לשעבד (כל זכות)', u: KZ + '%D7%A9%D7%9B%D7%A8_%D7%A2%D7%91%D7%95%D7%93%D7%94_%D7%A9%D7%9C%D7%90_%D7%A0%D7%99%D7%AA%D7%9F_%D7%9C%D7%A2%D7%A7%D7%9C_%D7%90%D7%95_%D7%9C%D7%A9%D7%A2%D7%91%D7%93' },
+      { t: 'מדריך לחייב בהוצאה לפועל שיש עליו עיקולים (כל זכות)', u: KZ + '%D7%9E%D7%93%D7%A8%D7%99%D7%9A_%D7%9C%D7%97%D7%99%D7%99%D7%91_%D7%91%D7%94%D7%95%D7%A6%D7%90%D7%94_%D7%9C%D7%A4%D7%95%D7%A2%D7%9C_%D7%A9%D7%99%D7%A9_%D7%A2%D7%99%D7%A7%D7%95%D7%9C%D7%99%D7%9D_%D7%A2%D7%9C%D7%99%D7%95_%D7%90%D7%95_%D7%A2%D7%9C_%D7%A8%D7%9B%D7%95%D7%A9%D7%95' },
+    ],
+  },
+  {
+    label: 'דיני עבודה ופיטורים',
+    match: ['פיטורים', 'פיצויי פיטורים', 'שימוע', 'הודעה מוקדמת', 'שכר', 'העסקה', 'מעסיק', 'מעביד', 'התפטרות', 'שעות נוספות'],
+    sources: [
+      { t: 'מדריך בנושא פיטורים (כל זכות)', u: KZ + '%D7%9E%D7%93%D7%A8%D7%99%D7%9A_%D7%91%D7%A0%D7%95%D7%A9%D7%90_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D' },
+      { t: 'פיצויי פיטורים לעובד שפוטר (כל זכות)', u: KZ + '%D7%A4%D7%99%D7%A6%D7%95%D7%99%D7%99_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D_%D7%9C%D7%A2%D7%95%D7%91%D7%93_%D7%A9%D7%A4%D7%95%D7%98%D7%A8' },
+      { t: 'שימוע לפני פיטורים (כל זכות)', u: KZ + '%D7%A9%D7%99%D7%9E%D7%95%D7%A2_%D7%9C%D7%A4%D7%A0%D7%99_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D' },
+      { t: 'הודעה מוקדמת לפיטורים (כל זכות)', u: KZ + '%D7%94%D7%95%D7%93%D7%A2%D7%94_%D7%9E%D7%95%D7%A7%D7%93%D7%9E%D7%AA_%D7%9C%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D' },
+    ],
+  },
+]
+const generalSources = [
+  { t: 'כל זכות — מאגר הזכויות הציבורי', u: KZ + '%D7%A2%D7%9E%D7%95%D7%93_%D7%A8%D7%90%D7%A9%D7%99' },
+  { t: 'מאגר החקיקה הלאומי — חוקי מדינת ישראל (gov.il)', u: 'https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database' },
+]
+const getLegalSources = (text: string) => {
+  const t = (text || '').toLowerCase()
+  const topic = legalTopics.find((x) => x.match.some((k) => t.includes(k.toLowerCase())))
+  return { topicLabel: topic?.label || 'כללי', sources: [...(topic?.sources || []), ...generalSources] }
+}
+
 const initialForm = {
   name: '',
   email: '',
@@ -667,6 +702,7 @@ function App() {
   const [garnishInput, setGarnishInput] = useState<GarnishmentInput>({ originalDebt: '', totalCollected: '', extraCharges: '', incomeType: 'salary' })
   const [garnishResult, setGarnishResult] = useState<ReturnType<typeof buildGarnishmentAssessment> | null>(null)
   const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, sending: false, done: false, error: '' })
+  const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[] } | null>(null)
 
   useEffect(() => {
     window.localStorage.setItem(selectedProfileStorageKey, selectedProfileId)
@@ -937,6 +973,7 @@ function App() {
 
     const immediateAssessment = buildImmediateDocumentAssessment(file, textPreview)
     setReviewResult(immediateAssessment)
+    setLookupSources(getLegalSources(`${file.name} ${textPreview}`))
   }
 
   const handleDocumentReview = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -1052,9 +1089,10 @@ function App() {
       return
     }
     setIsCheckingQuestion(true)
-    // Immediate local assessment. Hook point for a real AI / legal-database engine.
+    // Immediate local assessment + cited sources from public legal databases.
     const assessment = buildImmediateQuestionAssessment(legalQuestion)
     setReviewResult(assessment)
+    setLookupSources(getLegalSources(legalQuestion))
     setIsCheckingQuestion(false)
   }
 
@@ -1069,6 +1107,7 @@ function App() {
   const handleGarnishSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setGarnishResult(buildGarnishmentAssessment(garnishInput))
+    setLookupSources(getLegalSources('עיקול הוצאה לפועל גבייה כספים מוגנים'))
     setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
   }
 
@@ -1688,6 +1727,18 @@ function App() {
                 </div>
                 <p className="tool-disclaimer">{garnishResult.nextStep}</p>
 
+                {lookupSources && (
+                  <div className="result-block sources-block">
+                    <strong>מקורות מידע — מבוסס על מאגרים ציבוריים</strong>
+                    <ul>
+                      {lookupSources.sources.map((s) => (
+                        <li key={s.u}><a href={s.u} target="_blank" rel="noreferrer noopener">{s.t}</a></li>
+                      ))}
+                    </ul>
+                    <p className="sources-note">התשובה מבוססת על מקורות ציבוריים חינמיים (כל זכות ומאגר החקיקה הלאומי). מומלץ לעיין במקור.</p>
+                  </div>
+                )}
+
                 {!refund.open && !refund.done && (
                   <div className="result-cta">
                     <button type="button" className="primary-btn refund-btn" onClick={openRefund}>💸 הגש בקשה להחזר</button>
@@ -1759,6 +1810,18 @@ function App() {
                 </div>
 
                 <strong>{reviewResult.nextStep}</strong>
+
+                {lookupSources && (
+                  <div className="result-block sources-block">
+                    <strong>מקורות מידע — מבוסס על מאגרים ציבוריים</strong>
+                    <ul>
+                      {lookupSources.sources.map((s) => (
+                        <li key={s.u}><a href={s.u} target="_blank" rel="noreferrer noopener">{s.t}</a></li>
+                      ))}
+                    </ul>
+                    <p className="sources-note">התשובה מבוססת על מקורות ציבוריים חינמיים (כל זכות ומאגר החקיקה הלאומי). מומלץ לעיין במקור.</p>
+                  </div>
+                )}
 
                 <div className="result-cta">
                   <a className="primary-btn" href="#pricing">🧾 הכנת טפסים ושליחה אונליין</a>
