@@ -229,6 +229,111 @@ app.post('/api/leads', (req, res) => {
   res.status(201).json({ success: true, lead })
 })
 
+/* ===================== PUBLIC: AI legal analysis ================ */
+// Real "decoding": extracts document text, sends it to Claude grounded on free
+// public sources, returns a targeted non-binding analysis + steps + remedies.
+const uploadMem = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
+
+const extractDocText = async (file, providedText) => {
+  if (providedText && String(providedText).trim()) return String(providedText).trim()
+  if (!file || !file.buffer) return ''
+  const name = (file.originalname || '').toLowerCase()
+  const mime = file.mimetype || ''
+  try {
+    if (name.endsWith('.txt') || name.endsWith('.md') || mime.startsWith('text/')) return file.buffer.toString('utf8')
+    if (name.endsWith('.pdf') || mime === 'application/pdf') {
+      const pdf = (await import('pdf-parse/lib/pdf-parse.js')).default
+      const data = await pdf(file.buffer)
+      return data.text || ''
+    }
+    if (name.endsWith('.docx')) {
+      const mammoth = await import('mammoth')
+      const r = await mammoth.extractRawText({ buffer: file.buffer })
+      return r.value || ''
+    }
+  } catch {
+    return ''
+  }
+  return ''
+}
+
+const SOURCE_HINTS = `מקורות ציבוריים חינמיים מהם ניתן לצטט (העדף קישורים אלה כשהם רלוונטיים):
+- כל זכות — הוצאה לפועל וגבייה: https://www.kolzchut.org.il/he/הוצאה_לפועל_וגבייה
+- כל זכות — נכסים וכספים שאסור לעקל בהוצאה לפועל: https://www.kolzchut.org.il/he/נכסים_וכספים_שאסור_לעקל_בהוצאה_לפועל
+- כל זכות — שכר עבודה שלא ניתן לעקל או לשעבד: https://www.kolzchut.org.il/he/שכר_עבודה_שלא_ניתן_לעקל_או_לשעבד
+- כל זכות — מדריך בנושא פיטורים: https://www.kolzchut.org.il/he/מדריך_בנושא_פיטורים
+- כל זכות — פיצויי פיטורים לעובד שפוטר: https://www.kolzchut.org.il/he/פיצויי_פיטורים_לעובד_שפוטר
+- מאגר החקיקה הלאומי (חוקי מדינת ישראל): https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database`
+
+const callClaude = async (system, userContent) => {
+  const key = process.env.ANTHROPIC_API_KEY
+  if (!key) return { error: 'no_key' }
+  const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest'
+  let resp
+  try {
+    resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model, max_tokens: 1800, system, messages: [{ role: 'user', content: userContent }] }),
+    })
+  } catch (e) {
+    return { error: 'network', detail: String(e).slice(0, 200) }
+  }
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => '')
+    return { error: 'api_error', status: resp.status, detail: t.slice(0, 400) }
+  }
+  const data = await resp.json()
+  const text = (data.content || []).map((b) => b.text || '').join('\n').trim()
+  return { text }
+}
+
+app.post('/api/legal-analyze', uploadMem.single('file'), async (req, res) => {
+  try {
+    const question = (req.body?.question || '').toString().trim()
+    const docText = await extractDocText(req.file, req.body?.text)
+    if (!question && !docText) {
+      res.status(400).json({ error: 'לא סופקה שאלה או מסמך קריא' })
+      return
+    }
+
+    const system = `אתה עוזר משפטי מקצועי בישראל, המבסס תשובות על הדין הישראלי ועל מקורות ציבוריים חינמיים. עליך לפענח את המקרה מהמסמך/השאלה, להסביר בצורה מקצועית וברורה בעברית, ולהציע צעדים וסעדים — הכל כמידע כללי שאינו ייעוץ משפטי מחייב.
+${SOURCE_HINTS}
+כללים: בסס עצמך על הדין הישראלי ועל עקרונות פסיקה מקובלים; אל תמציא פסקי דין ספציפיים או מספרי תיקים; אם המידע חלקי — ציין מה חסר; שמור על טון מקצועי ומכבד.
+החזר אך ורק JSON תקין במבנה הבא (ללא טקסט נוסף):
+{"caseDecoding":"פענוח קצר וממוקד של המקרה","legalAnalysis":"הסבר משפטי מקצועי כללי המבוסס על חוק ועקרונות","steps":["צעד 1","צעד 2"],"remedies":["סעד אפשרי 1","סעד אפשרי 2"],"sources":[{"title":"שם המקור","url":"קישור"}],"riskLevel":"נמוך/בינוני/גבוה","disclaimer":"מידע כללי בלבד, אינו ייעוץ משפטי מחייב."}`
+
+    const userContent = `שאלת/פניית המשתמש: ${question || '(המשתמש העלה מסמך לבדיקה)'}
+
+תוכן המסמך שחולץ (עד 12000 תווים):
+${(docText || '(לא חולץ טקסט מהמסמך)').slice(0, 12000)}`
+
+    const result = await callClaude(system, userContent)
+    if (result.error === 'no_key') {
+      res.json({ needsKey: true })
+      return
+    }
+    if (result.error) {
+      res.json({ aiError: true, status: result.status || 0, detail: result.detail || result.error })
+      return
+    }
+    let parsed = null
+    try {
+      parsed = JSON.parse((result.text || '').replace(/^```json\s*/i, '').replace(/```$/i, '').trim())
+    } catch {
+      parsed = null
+    }
+    if (!parsed) {
+      res.json({ raw: result.text || '' })
+      return
+    }
+    appendAudit({ area: 'analyze', action: 'ai_analyze', actor: 'public', detail: (question || 'ניתוח מסמך').slice(0, 80) })
+    res.json({ analysis: parsed, extractedChars: (docText || '').length })
+  } catch (e) {
+    res.json({ aiError: true, detail: String(e).slice(0, 200) })
+  }
+})
+
 /* ===================== PUBLIC: refund requests =================== */
 // Registered + consented request that the FIRM handles. Does not file anything
 // with any authority automatically. Stored as a lead so staff can act on it.
