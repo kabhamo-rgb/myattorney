@@ -82,6 +82,7 @@ const faqs = [
 // NOTE: placeholder prices — replace with the firm's real rates.
 const pricingTiers = [
   {
+    id: 'lien-check',
     name: 'בדיקת עיקול / עיקול ביתר',
     price: '₪290',
     tagline: 'הכלי המבוקש ביותר',
@@ -94,6 +95,7 @@ const pricingTiers = [
     ],
   },
   {
+    id: 'single-form',
     name: 'הכנת טופס משפטי בודד',
     price: '₪190',
     tagline: 'מכתב דרישה / התראה / בקשה',
@@ -106,6 +108,7 @@ const pricingTiers = [
     ],
   },
   {
+    id: 'form-set',
     name: 'סט טפסים לתיק שלם',
     price: '₪490',
     tagline: 'מספר מסמכים מקושרים',
@@ -952,6 +955,28 @@ function App() {
     const { name, value } = event.target
     setFormData((current) => ({ ...current, [name]: value }))
     setSubmitted(false)
+  }
+
+  const handleCheckout = async (tierId?: string) => {
+    if (!tierId) {
+      window.location.href = '#contact'
+      return
+    }
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: tierId }),
+      })
+      const data = await response.json()
+      if (data && data.url) {
+        window.location.href = data.url // → Stripe hosted Checkout (Apple Pay / Google Pay / cards)
+        return
+      }
+      window.location.href = '#contact' // not configured yet / error → contact fallback
+    } catch {
+      window.location.href = '#contact'
+    }
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -2177,7 +2202,11 @@ function App() {
           <div className="section-header">
             <p className="eyebrow">הכנת טפסים ושליחה אונליין</p>
             <h2>עלות לפי סוג התיק</h2>
-            <p>בוחרים שירות, אנחנו מכינים ושולחים בשמך. מחירים סופיים יוצגו לפני התשלום.</p>
+            <p>בוחרים שירות, משלמים באתר, ואנחנו מכינים ושולחים בשמך.</p>
+            <p className="pay-methods">💳 תשלום מאובטח · Apple Pay · Google Pay · כל כרטיסי האשראי</p>
+            {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1' && (
+              <p className="paid-banner">✅ התשלום התקבל בהצלחה! נציג/ת מהמשרד יחזרו אליך בהקדם.</p>
+            )}
           </div>
           <div className="pricing-grid">
             {pricingTiers.map((tier) => (
@@ -2191,7 +2220,13 @@ function App() {
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
-                <a className={tier.highlight ? 'primary-btn' : 'secondary-btn'} href="#contact">להזמנה</a>
+                {'id' in tier ? (
+                  <button type="button" className={tier.highlight ? 'primary-btn' : 'secondary-btn'} onClick={() => handleCheckout((tier as { id: string }).id)}>
+                    לתשלום מאובטח
+                  </button>
+                ) : (
+                  <a className="secondary-btn" href="#contact">קבלת הצעה</a>
+                )}
               </div>
             ))}
           </div>

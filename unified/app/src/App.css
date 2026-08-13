@@ -1616,3 +1616,10 @@
 }
 input, select, textarea, button { -webkit-tap-highlight-color: transparent; }
 input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
+
+/* Payment methods note + paid banner */
+.pay-methods { font-size: 13.5px; color: #64748b; margin-top: 6px; }
+.paid-banner {
+  display: inline-block; margin-top: 12px; background: #dcfce7; color: #166534;
+  border: 1px solid #86efac; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 15px;
+}
