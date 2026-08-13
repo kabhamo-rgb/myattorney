@@ -320,6 +320,64 @@ const buildImmediateQuestionAssessment = (rawQuestion: string) => {
   }
 }
 
+type GarnishmentInput = {
+  originalDebt: string
+  totalCollected: string
+  extraCharges: string
+  incomeType: 'salary' | 'benefit' | 'other'
+}
+
+const toNumber = (v: string) => {
+  const n = Number(String(v).replace(/[^\d.]/g, ''))
+  return Number.isFinite(n) ? n : 0
+}
+
+const formatILS = (n: number) =>
+  '₪' + Math.round(n).toLocaleString('he-IL')
+
+// General (non-binding) over-garnishment estimate. Core is simple arithmetic;
+// protected-income flags are qualitative. Not legal advice.
+const buildGarnishmentAssessment = (input: GarnishmentInput) => {
+  const debt = toNumber(input.originalDebt)
+  const collected = toNumber(input.totalCollected)
+  const extra = toNumber(input.extraCharges)
+  const lawfulTotal = debt + extra
+  const over = collected - lawfulTotal
+
+  const protectedIncome = input.incomeType === 'benefit'
+  const flags: string[] = []
+  if (over > 0) flags.push(`לפי הנתונים, ייתכן שנגבו ממך כ-${formatILS(over)} מעבר לחוב ולתוספות שציינת.`)
+  if (over <= 0 && collected > 0) flags.push('לפי הנתונים שהוזנו לא זוהתה גבייה ביתר מובהקת — אך ריביות/הוצאות שנוספו שלא כדין עשויות לשנות זאת.')
+  if (protectedIncome) flags.push('ציינת שההכנסה היא קצבה — קצבאות רבות מוגנות מעיקול. ייתכן שעוקלו כספים מוגנים שיש להשיב.')
+  if (debt === 0) flags.push('לא הוזן סכום חוב מקורי — כדי לדייק, הזן את סכום החוב הפסוק.')
+
+  const likelyRefund = over > 0
+  const verdict = likelyRefund
+    ? 'סביר שנגבה ביתר — מומלץ לבדוק החזר'
+    : protectedIncome
+      ? 'ייתכן שעוקלו כספים מוגנים — כדאי בדיקה'
+      : 'לא זוהתה גבייה ביתר מובהקת'
+
+  const riskLevel = likelyRefund || protectedIncome ? 'דורש בדיקה דחופה' : 'תקין לכאורה'
+
+  return {
+    title: 'תוצאת בדיקת עיקול',
+    verdict,
+    estimatedOverpaid: over > 0 ? Math.round(over) : 0,
+    riskLevel,
+    summary: likelyRefund
+      ? `לפי הבדיקה הכללית, ייתכן שנגבו ממך כ-${formatILS(over)} ביתר. ניתן לבחון הגשת בקשה להחזר.`
+      : 'לפי הנתונים שהוזנו, לא זוהתה גבייה ביתר ברורה. עדיין מומלץ לוודא את פירוט החיובים בתיק.',
+    findings: flags.length ? flags : ['לא זוהו סימנים חריגים לפי הנתונים שהוזנו.'],
+    recommendations: [
+      'להוציא "תדפיס תיק" מלא ממערכת ההוצאה לפועל ולהשוות מול הסכומים שנגבו בפועל.',
+      'לוודא שלא עוקלו כספים מוגנים (קצבאות, שכר עד התקרה המוגנת, מזונות).',
+      likelyRefund ? 'להגיש בקשה לרשם ההוצאה לפועל להשבת כספים שנגבו ביתר.' : 'לשמור תיעוד ולעקוב אחר חיובים עתידיים בתיק.',
+    ],
+    nextStep: 'בדיקה כללית ומשוערת בלבד, אינה ייעוץ משפטי מחייב. לקבלת החזר ניתן להגיש בקשה — לאחר רישום ואישור מפורש שלך המשרד יטפל בבקשה.',
+  }
+}
+
 const clientProfiles = [
   {
     id: 'oren',
@@ -603,9 +661,12 @@ function App() {
   const [auditDateRange, setAuditDateRange] = useState<'all' | '7' | '30'>('all')
   const [pendingDeleteDocument, setPendingDeleteDocument] = useState<DocumentRecord | null>(null)
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false)
-  const [heroTab, setHeroTab] = useState<'document' | 'question'>('document')
+  const [heroTab, setHeroTab] = useState<'document' | 'garnish' | 'question'>('document')
   const [legalQuestion, setLegalQuestion] = useState('')
   const [isCheckingQuestion, setIsCheckingQuestion] = useState(false)
+  const [garnishInput, setGarnishInput] = useState<GarnishmentInput>({ originalDebt: '', totalCollected: '', extraCharges: '', incomeType: 'salary' })
+  const [garnishResult, setGarnishResult] = useState<ReturnType<typeof buildGarnishmentAssessment> | null>(null)
+  const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, sending: false, done: false, error: '' })
 
   useEffect(() => {
     window.localStorage.setItem(selectedProfileStorageKey, selectedProfileId)
@@ -998,12 +1059,57 @@ function App() {
   }
 
   const startLiensCheck = () => {
-    setHeroTab('question')
-    setLegalQuestion('קיבלתי עיקול בהוצאה לפועל ואני רוצה לבדוק אם נגבו ממני כספים ביתר / מעבר לחוב.')
-    setReviewResult(buildImmediateQuestionAssessment('עיקול הוצאה לפועל כסף ביתר חוב'))
+    setHeroTab('garnish')
     if (typeof document !== 'undefined') {
       const el = document.getElementById('legal-tool')
       if (el) el.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  const handleGarnishSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setGarnishResult(buildGarnishmentAssessment(garnishInput))
+    setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
+  }
+
+  const openRefund = () => setRefund((r) => ({ ...r, open: true, done: false, error: '' }))
+
+  const handleRefundSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!refund.fullName.trim() || !(refund.phone.trim() || refund.email.trim())) {
+      setRefund((r) => ({ ...r, error: 'יש למלא שם מלא וטלפון או דוא"ל.' }))
+      return
+    }
+    if (!refund.consent) {
+      setRefund((r) => ({ ...r, error: 'יש לאשר את שליחת הבקשה בשמך.' }))
+      return
+    }
+    setRefund((r) => ({ ...r, sending: true, error: '' }))
+    try {
+      await fetch(`${apiBaseUrl}/api/refund-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: refund.fullName,
+          idNumber: refund.idNumber,
+          phone: refund.phone,
+          email: refund.email,
+          consent: refund.consent,
+          details: garnishResult
+            ? {
+                summary: garnishResult.summary,
+                estimatedOverpaid: garnishResult.estimatedOverpaid,
+                originalDebt: toNumber(garnishInput.originalDebt),
+                totalCollected: toNumber(garnishInput.totalCollected),
+                incomeType: garnishInput.incomeType,
+                verdict: garnishResult.verdict,
+              }
+            : {},
+        }),
+      })
+      setRefund((r) => ({ ...r, sending: false, done: true }))
+    } catch {
+      setRefund((r) => ({ ...r, sending: false, done: true }))
     }
   }
 
@@ -1486,27 +1592,58 @@ function App() {
               <button type="button" role="tab" className={heroTab === 'document' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('document')}>
                 📄 בדיקת מסמך
               </button>
+              <button type="button" role="tab" className={heroTab === 'garnish' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('garnish')}>
+                🧮 בדיקת עיקול
+              </button>
               <button type="button" role="tab" className={heroTab === 'question' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('question')}>
-                ⚖️ שאלה משפטית
+                ⚖️ שאלה
               </button>
             </div>
 
-            {heroTab === 'document' ? (
+            {heroTab === 'document' && (
               <form className="tool-form" onSubmit={handleDocumentReview}>
-                <label className="file-upload-box">
-                  <span>בחר קובץ לבדיקה (PDF, Word, TXT)</span>
+                <label className="dropzone">
+                  <span className="dropzone-icon">⬆️</span>
+                  <strong>{uploadedFile ? uploadedFile.name : 'לחץ כאן להעלאת מסמך'}</strong>
+                  <span className="dropzone-hint">PDF · Word · TXT — התשובה מופיעה מיד, ללא המתנה</span>
                   <input type="file" accept=".pdf,.doc,.docx,.txt,.rtf" onChange={handleFileUpload} />
                 </label>
-                {uploadedFile ? (
-                  <div className="file-meta"><strong>הקובץ שנבחר:</strong><span>{uploadedFile.name}</span></div>
-                ) : (
-                  <div className="file-meta muted"><strong>לא נבחר מסמך עדיין.</strong></div>
-                )}
                 <button type="submit" className="primary-btn submit-btn" disabled={isUploadingDocument}>
-                  {isUploadingDocument ? 'מעלה ובודק...' : '🔎 בדוק מסמך עכשיו'}
+                  {isUploadingDocument ? 'בודק...' : '🔎 בדוק מסמך עכשיו'}
                 </button>
               </form>
-            ) : (
+            )}
+
+            {heroTab === 'garnish' && (
+              <form className="tool-form garnish-form" onSubmit={handleGarnishSubmit}>
+                <p className="garnish-lead">הזן את הנתונים ונחשב אם ייתכן שנגבו ממך כספים ביתר:</p>
+                <div className="garnish-grid">
+                  <label>סכום החוב המקורי (₪)
+                    <input inputMode="numeric" placeholder="לדוגמה: 20000" value={garnishInput.originalDebt}
+                      onChange={(e) => setGarnishInput((g) => ({ ...g, originalDebt: e.target.value }))} />
+                  </label>
+                  <label>סה"כ שנגבה עד היום (₪)
+                    <input inputMode="numeric" placeholder="לדוגמה: 26000" value={garnishInput.totalCollected}
+                      onChange={(e) => setGarnishInput((g) => ({ ...g, totalCollected: e.target.value }))} />
+                  </label>
+                  <label>ריבית / הוצאות שנוספו כדין (₪)
+                    <input inputMode="numeric" placeholder="לא חובה" value={garnishInput.extraCharges}
+                      onChange={(e) => setGarnishInput((g) => ({ ...g, extraCharges: e.target.value }))} />
+                  </label>
+                  <label>סוג ההכנסה שנפגעה
+                    <select value={garnishInput.incomeType}
+                      onChange={(e) => setGarnishInput((g) => ({ ...g, incomeType: e.target.value as GarnishmentInput['incomeType'] }))}>
+                      <option value="salary">שכר עבודה</option>
+                      <option value="benefit">קצבה (ביטוח לאומי / פנסיה)</option>
+                      <option value="other">אחר</option>
+                    </select>
+                  </label>
+                </div>
+                <button type="submit" className="primary-btn submit-btn">🧮 בדוק אם נגבה ביתר</button>
+              </form>
+            )}
+
+            {heroTab === 'question' && (
               <form className="tool-form" onSubmit={handleQuestionSubmit}>
                 <label className="tool-question-label">
                   <span>תאר את השאלה או המצב המשפטי</span>
@@ -1524,10 +1661,78 @@ function App() {
             )}
 
             <p className="tool-disclaimer">
-              בדיקה מיידית ואוטומטית — הערכה ראשונית בלבד, אינה מהווה ייעוץ משפטי מחייב.
+              בדיקה כללית ומיידית — הערכה ראשונית בלבד, אינה מהווה ייעוץ משפטי מחייב.
             </p>
 
-            {reviewResult && (
+            {heroTab === 'garnish' && garnishResult && (
+              <div className="review-result garnish-result" aria-live="polite">
+                <div className="report-header">
+                  <h3>{garnishResult.title}</h3>
+                  <span className="risk-pill">{garnishResult.riskLevel}</span>
+                </div>
+                {garnishResult.estimatedOverpaid > 0 && (
+                  <div className="overpaid-banner">
+                    <span>הערכת גבייה ביתר</span>
+                    <strong>{'₪' + garnishResult.estimatedOverpaid.toLocaleString('he-IL')}</strong>
+                  </div>
+                )}
+                <p className="verdict-line">{garnishResult.verdict}</p>
+                <p>{garnishResult.summary}</p>
+                <div className="result-block">
+                  <strong>ממצאים</strong>
+                  <ul>{garnishResult.findings.map((item) => (<li key={item}>{item}</li>))}</ul>
+                </div>
+                <div className="result-block">
+                  <strong>המלצות</strong>
+                  <ul>{garnishResult.recommendations.map((item) => (<li key={item}>{item}</li>))}</ul>
+                </div>
+                <p className="tool-disclaimer">{garnishResult.nextStep}</p>
+
+                {!refund.open && !refund.done && (
+                  <div className="result-cta">
+                    <button type="button" className="primary-btn refund-btn" onClick={openRefund}>💸 הגש בקשה להחזר</button>
+                    <a className="secondary-btn" href="#pricing">הכנת טפסים ושליחה</a>
+                  </div>
+                )}
+
+                {refund.open && !refund.done && (
+                  <form className="refund-form" onSubmit={handleRefundSubmit}>
+                    <h4>רישום ואישור לשליחת הבקשה</h4>
+                    <p className="refund-note">
+                      הבקשה נשלחת למשרד לצורך טיפול — ואינה מוגשת לרשויות באופן אוטומטי. לשליחה נדרש אישורך המפורש.
+                    </p>
+                    <div className="garnish-grid">
+                      <label>שם מלא
+                        <input value={refund.fullName} onChange={(e) => setRefund((r) => ({ ...r, fullName: e.target.value }))} />
+                      </label>
+                      <label>תעודת זהות
+                        <input inputMode="numeric" value={refund.idNumber} onChange={(e) => setRefund((r) => ({ ...r, idNumber: e.target.value }))} />
+                      </label>
+                      <label>טלפון
+                        <input inputMode="tel" value={refund.phone} onChange={(e) => setRefund((r) => ({ ...r, phone: e.target.value }))} />
+                      </label>
+                      <label>דוא"ל
+                        <input inputMode="email" value={refund.email} onChange={(e) => setRefund((r) => ({ ...r, email: e.target.value }))} />
+                      </label>
+                    </div>
+                    <label className="consent-line">
+                      <input type="checkbox" checked={refund.consent} onChange={(e) => setRefund((r) => ({ ...r, consent: e.target.checked }))} />
+                      <span>אני מאשר/ת למשרד להכין ולהגיש בקשה להחזר בשמי, ולפנות אליי בעניין. הבנתי שזו בדיקה כללית ולא ייעוץ מחייב.</span>
+                    </label>
+                    {refund.error && <p className="refund-error">{refund.error}</p>}
+                    <button type="submit" className="primary-btn submit-btn" disabled={refund.sending}>
+                      {refund.sending ? 'שולח...' : 'שליחת הבקשה למשרד'}
+                    </button>
+                  </form>
+                )}
+
+                {refund.done && (
+                  <div className="refund-done">✅ הבקשה נשלחה בהצלחה. נציג/ת מהמשרד יחזרו אליך בהקדם לבדיקת ההחזר.</div>
+                )}
+              </div>
+            )}
+
+            {heroTab !== 'garnish' && reviewResult && (
               <div className="review-result" aria-live="polite">
                 <div className="report-header">
                   <h3>{reviewResult.title}</h3>

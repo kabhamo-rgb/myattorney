@@ -1501,3 +1501,58 @@
 @media (max-width: 560px) {
   .pricing-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   Iteration 2 — friendly document dropzone, garnishment
+   calculator, refund flow
+   ============================================================ */
+.tool-tabs .tool-tab { font-size: 14px; padding: 10px 6px; }
+
+/* Big friendly dropzone */
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  border: 2px dashed #9db2ce; border-radius: 16px; padding: 30px 18px;
+  background: #f8fafc; color: #0f172a; text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.dropzone:hover { border-color: #1d4ed8; background: #eff4ff; }
+.dropzone .dropzone-icon { font-size: 30px; }
+.dropzone strong { font-size: 17px; }
+.dropzone .dropzone-hint { font-size: 13px; color: #64748b; }
+.dropzone input[type="file"] { display: none; }
+
+/* Garnishment calculator */
+.garnish-lead { font-size: 14.5px; color: #334155; margin: 0 0 4px; }
+.garnish-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.garnish-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 600; color: #0f172a; }
+.garnish-grid input, .garnish-grid select {
+  border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 12px;
+  font-size: 15px; font-family: inherit; background: #fff; color: #0f172a;
+}
+.overpaid-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #fef3c7, #fde68a); color: #7c2d12;
+  border-radius: 12px; padding: 12px 16px; margin: 6px 0 10px; font-weight: 700;
+}
+.overpaid-banner strong { font-size: 22px; }
+.verdict-line { font-weight: 800; font-size: 16px; color: #0f172a; margin: 2px 0 6px; }
+
+/* Refund flow */
+.refund-btn { background: linear-gradient(135deg, #16a34a, #22c55e) !important; }
+.refund-form {
+  margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.refund-form h4 { margin: 0; font-size: 16px; color: #0f172a; }
+.refund-note { font-size: 13px; color: #64748b; margin: 0; }
+.consent-line { display: flex; align-items: flex-start; gap: 9px; font-size: 13.5px; color: #334155; font-weight: 500; line-height: 1.4; }
+.consent-line input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; }
+.refund-error { color: #dc2626; font-size: 13.5px; margin: 0; }
+.refund-done {
+  margin-top: 14px; background: #dcfce7; color: #166534; border: 1px solid #86efac;
+  border-radius: 12px; padding: 14px 16px; font-weight: 600; font-size: 15px;
+}
+
+@media (max-width: 560px) {
+  .garnish-grid { grid-template-columns: 1fr; }
+}
