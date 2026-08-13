@@ -223,6 +223,37 @@ app.get('/api/ai-status', (_req, res) => {
   res.json({ aiEnabled: provider !== 'none', provider, model })
 })
 
+// Diagnostic: run one live LLM call and report the outcome (no secrets).
+app.get('/api/ai-test', async (req, res) => {
+  if (req.query.run !== '1') {
+    res.json({ hint: 'הוסף ?run=1 כדי להריץ קריאת בדיקה חיה' })
+    return
+  }
+  const result = await callLLM(
+    'אתה עוזר משפטי בישראל. החזר JSON תקין בלבד.',
+    'שאלה: קיבלתי עיקול בהוצאה לפועל ונגבה יותר מדי — מה לעשות? החזר {"caseDecoding":"...","legalAnalysis":"...","steps":["..."],"remedies":["..."],"riskLevel":"בינוני","disclaimer":"..."}',
+  )
+  let parsedOk = false
+  if (result.text) {
+    try {
+      JSON.parse(String(result.text).replace(/^```json\s*/i, '').replace(/```$/i, '').trim())
+      parsedOk = true
+    } catch {
+      parsedOk = false
+    }
+  }
+  res.json({
+    ok: !!result.text,
+    provider: result.provider || null,
+    model: result.model || null,
+    error: result.error || null,
+    status: result.status || null,
+    detail: result.detail ? String(result.detail).slice(0, 300) : null,
+    parsedOk,
+    textSnippet: result.text ? String(result.text).slice(0, 200) : null,
+  })
+})
+
 /* ===================== PUBLIC: leads (contact) ==================== */
 app.post('/api/leads', (req, res) => {
   const { name, phone, email, topic, urgency, message } = req.body || {}
@@ -294,24 +325,45 @@ const callLLM = async (system, userContent) => {
 
   try {
     if (geminiKey) {
-      const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: userContent }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1800, responseMimeType: 'application/json' },
-        }),
-      })
-      if (!resp.ok) {
+      // Try several model names — availability varies by account/date.
+      const candidates = [
+        process.env.GEMINI_MODEL,
+        'gemini-2.0-flash',
+        'gemini-2.5-flash',
+        'gemini-flash-latest',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+      ].filter(Boolean)
+      let lastErr = { error: 'api_error', provider: 'gemini', detail: 'no model responded' }
+      for (const model of candidates) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`
+        let resp
+        try {
+          resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: system }] },
+              contents: [{ role: 'user', parts: [{ text: userContent }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1800, responseMimeType: 'application/json' },
+            }),
+          })
+        } catch (e) {
+          return { error: 'network', detail: String(e).slice(0, 200) }
+        }
+        if (resp.ok) {
+          const data = await resp.json()
+          const text = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('\n').trim()
+          if (text) return { text, provider: 'gemini', model }
+          lastErr = { error: 'empty', provider: 'gemini', model }
+          continue
+        }
         const t = await resp.text().catch(() => '')
-        return { error: 'api_error', provider: 'gemini', status: resp.status, detail: t.slice(0, 400) }
+        lastErr = { error: 'api_error', provider: 'gemini', model, status: resp.status, detail: t.slice(0, 300) }
+        // 401/403 = key problem → stop trying more models
+        if (resp.status === 401 || resp.status === 403) break
       }
-      const data = await resp.json()
-      const text = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('\n').trim()
-      return { text }
+      return lastErr
     }
 
     if (anthropicKey) {
