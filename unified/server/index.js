@@ -234,15 +234,7 @@ app.get('/api/ai-test', (req, res) => {
         'אתה עוזר משפטי בישראל. החזר JSON תקין בלבד.',
         'שאלה: קיבלתי עיקול בהוצאה לפועל ונגבה יותר מדי — מה לעשות? החזר {"caseDecoding":"...","legalAnalysis":"...","steps":["..."],"remedies":["..."],"riskLevel":"בינוני","disclaimer":"..."}',
       )
-      let parsedOk = false
-      if (result.text) {
-        try {
-          JSON.parse(String(result.text).replace(/^```json\s*/i, '').replace(/```$/i, '').trim())
-          parsedOk = true
-        } catch {
-          parsedOk = false
-        }
-      }
+      const parsedOk = !!parseJsonLoose(result.text)
       lastAiTest = {
         ok: !!result.text,
         provider: result.provider || null,
@@ -251,7 +243,8 @@ app.get('/api/ai-test', (req, res) => {
         status: result.status || null,
         detail: result.detail ? String(result.detail).slice(0, 300) : null,
         parsedOk,
-        textSnippet: result.text ? String(result.text).slice(0, 200) : null,
+        textLen: result.text ? String(result.text).length : 0,
+        textSnippet: result.text ? String(result.text).slice(0, 500) : null,
         finishedAt: new Date().toISOString(),
       }
     })()
@@ -323,6 +316,19 @@ const SOURCE_HINTS = `מקורות ציבוריים חינמיים מהם נית
 - כל זכות — פיצויי פיטורים לעובד שפוטר: https://www.kolzchut.org.il/he/פיצויי_פיטורים_לעובד_שפוטר
 - מאגר החקיקה הלאומי (חוקי מדינת ישראל): https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database`
 
+// Tolerant JSON parse — handles code fences and truncated trailing content.
+const parseJsonLoose = (text) => {
+  if (!text) return null
+  let s = String(text).trim().replace(/^```json\s*/i, '').replace(/```$/i, '').trim()
+  try { return JSON.parse(s) } catch { /* try substring */ }
+  const a = s.indexOf('{')
+  const b = s.lastIndexOf('}')
+  if (a >= 0 && b > a) {
+    try { return JSON.parse(s.slice(a, b + 1)) } catch { /* fall through */ }
+  }
+  return null
+}
+
 const fetchWithTimeout = async (url, opts, ms = 15000) => {
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(), ms)
@@ -362,7 +368,7 @@ const callLLM = async (system, userContent) => {
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: system }] },
               contents: [{ role: 'user', parts: [{ text: userContent }] }],
-              generationConfig: { temperature: 0.3, maxOutputTokens: 1800, responseMimeType: 'application/json' },
+              generationConfig: { temperature: 0.3, maxOutputTokens: 3000, responseMimeType: 'application/json' },
             }),
           }, 14000)
         } catch (e) {
@@ -437,7 +443,7 @@ app.post('/api/legal-analyze', uploadMem.single('file'), async (req, res) => {
 
     const system = `אתה עוזר משפטי מקצועי בישראל, המבסס תשובות על הדין הישראלי ועל מקורות ציבוריים חינמיים. עליך לפענח את המקרה מהמסמך/השאלה, להסביר בצורה מקצועית וברורה בעברית, ולהציע צעדים וסעדים — הכל כמידע כללי שאינו ייעוץ משפטי מחייב.
 ${SOURCE_HINTS}
-כללים: בסס עצמך על הדין הישראלי ועל עקרונות פסיקה מקובלים; אל תמציא פסקי דין ספציפיים או מספרי תיקים; אם המידע חלקי — ציין מה חסר; שמור על טון מקצועי ומכבד.
+כללים: בסס עצמך על הדין הישראלי ועל עקרונות פסיקה מקובלים; אל תמציא פסקי דין ספציפיים או מספרי תיקים; אם המידע חלקי — ציין מה חסר; שמור על טון מקצועי ומכבד; כתוב בתמציתיות (עד כ-100 מילים לכל שדה טקסט) וודא שה-JSON שלם וסגור בכל הסוגריים.
 החזר אך ורק JSON תקין במבנה הבא (ללא טקסט נוסף):
 {"caseDecoding":"פענוח קצר וממוקד של המקרה","legalAnalysis":"הסבר משפטי מקצועי כללי המבוסס על חוק ועקרונות","steps":["צעד 1","צעד 2"],"remedies":["סעד אפשרי 1","סעד אפשרי 2"],"sources":[{"title":"שם המקור","url":"קישור"}],"riskLevel":"נמוך/בינוני/גבוה","disclaimer":"מידע כללי בלבד, אינו ייעוץ משפטי מחייב."}`
 
@@ -455,12 +461,7 @@ ${(docText || '(לא חולץ טקסט מהמסמך)').slice(0, 12000)}`
       res.json({ aiError: true, status: result.status || 0, detail: result.detail || result.error })
       return
     }
-    let parsed = null
-    try {
-      parsed = JSON.parse((result.text || '').replace(/^```json\s*/i, '').replace(/```$/i, '').trim())
-    } catch {
-      parsed = null
-    }
+    const parsed = parseJsonLoose(result.text)
     if (!parsed) {
       res.json({ raw: result.text || '' })
       return
