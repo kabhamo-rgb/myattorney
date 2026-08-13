@@ -732,6 +732,15 @@ function App() {
     disclaimer?: string
   } | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [consent, setConsent] = useState<boolean>(() => {
+    try { return !!window.localStorage.getItem('mya-consent') } catch { return false }
+  })
+  const [showConsent, setShowConsent] = useState(false)
+  const [consentChecked, setConsentChecked] = useState(false)
+  const [route, setRoute] = useState<string>(() => window.location.hash.replace('#', ''))
+  const [clientAuthed, setClientAuthed] = useState(false)
+  const [clientInfo, setClientInfo] = useState<{ name?: string; caseId?: string } | null>(null)
+  const [clientLoginForm, setClientLoginForm] = useState({ caseId: '', code: '', error: '', busy: false })
 
   useEffect(() => {
     window.localStorage.setItem(selectedProfileStorageKey, selectedProfileId)
@@ -957,6 +966,41 @@ function App() {
     setSubmitted(false)
   }
 
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash.replace('#', ''))
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
+  const approveConsent = () => {
+    try { window.localStorage.setItem('mya-consent', new Date().toISOString()) } catch { /* ignore */ }
+    setConsent(true)
+    setShowConsent(false)
+  }
+
+  const handleClientLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setClientLoginForm((f) => ({ ...f, busy: true, error: '' }))
+    try {
+      const r = await fetch(`${apiBaseUrl}/api/client/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId: clientLoginForm.caseId, code: clientLoginForm.code }),
+      })
+      const d = await r.json()
+      if (r.ok && d.profileId) {
+        setSelectedProfileId(d.profileId)
+        setClientInfo({ name: d.name, caseId: d.caseId })
+        setClientAuthed(true)
+        setClientLoginForm((f) => ({ ...f, busy: false, error: '' }))
+      } else {
+        setClientLoginForm((f) => ({ ...f, busy: false, error: d.error || 'התחברות נכשלה' }))
+      }
+    } catch {
+      setClientLoginForm((f) => ({ ...f, busy: false, error: 'השרת אינו זמין כרגע' }))
+    }
+  }
+
   const handleCheckout = async (tierId?: string) => {
     if (!tierId) {
       window.location.href = '#contact'
@@ -1040,6 +1084,8 @@ function App() {
       })
       return
     }
+
+    if (!consent) { setShowConsent(true); return }
 
     runAiAnalysis({ file: uploadedFile })
 
@@ -1157,6 +1203,7 @@ function App() {
 
   const handleQuestionSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!consent) { setShowConsent(true); return }
     if (!legalQuestion.trim()) {
       setReviewResult({
         title: 'לא הוזנה שאלה',
@@ -1187,6 +1234,7 @@ function App() {
 
   const handleGarnishSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!consent) { setShowConsent(true); return }
     setGarnishResult(buildGarnishmentAssessment(garnishInput))
     setLookupSources(getLegalSources('עיקול הוצאה לפועל גבייה כספים מוגנים'))
     setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
@@ -1662,7 +1710,28 @@ function App() {
   }
 
   return (
-    <div className="page-shell">
+    <div className={route === 'client' ? 'page-shell client-mode' : 'page-shell'}>
+      {showConsent && (
+        <div className="consent-overlay" role="dialog" aria-modal="true">
+          <div className="consent-modal">
+            <h3>הצהרה, תנאי שימוש והסכמת פרטיות</h3>
+            <div className="consent-body">
+              <p><strong>מידע ולא ייעוץ:</strong> המידע והתוצאות באתר הם מידע משפטי כללי המבוסס על מקורות ומאגרים ציבוריים רשמיים (כל זכות, מאגר החקיקה הלאומי) וכלי בדיקה אוטומטיים. המידע <strong>אינו מהווה ייעוץ משפטי</strong>, אינו תחליף לייעוץ פרטני עם עורך דין, ואינו יוצר יחסי עורך דין–לקוח.</p>
+              <p><strong>הסתמכות:</strong> אין להסתמך על התוצאה כבסיס בלעדי לפעולה או להליך משפטי. באחריות המשתמש לפנות לייעוץ מקצועי פרטני טרם נקיטת צעד.</p>
+              <p><strong>הגנת פרטיות:</strong> בהעלאת מסמך או פרטים, המשתמש מסכים לעיבוד המידע לצורך הבדיקה בלבד, בהתאם לחוק הגנת הפרטיות, התשמ״א‑1981 ותקנותיו. המידע נשמר מאובטח ולא יימסר לצד שלישי ללא הסכמה, למעט כנדרש על פי דין. המשתמש מאשר כי המידע שהועלה שייך לו או שבידו הרשאה כדין להעלותו.</p>
+              <p><strong>הגבלת אחריות:</strong> השימוש באתר ובכלים הוא באחריות המשתמש בלבד. המפעיל/המשרד לא יישא באחריות לכל נזק ישיר או עקיף שייגרם מהשימוש או מהסתמכות על המידע והתוצאות.</p>
+            </div>
+            <label className="consent-check">
+              <input type="checkbox" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)} />
+              <span>קראתי, הבנתי ואני מאשר/ת את התנאים ואת הסכמת הפרטיות.</span>
+            </label>
+            <div className="consent-actions">
+              <button type="button" className="primary-btn" disabled={!consentChecked} onClick={approveConsent}>אישור והמשך</button>
+              <button type="button" className="secondary-btn" onClick={() => setShowConsent(false)}>ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark">M</div>
@@ -1676,9 +1745,9 @@ function App() {
           <a href="#legal-tool">בדיקה מיידית</a>
           <a href="#pricing">תמחור</a>
           <a href="#services">שירותים</a>
-          <a href="#portal">אזור לקוח</a>
           <a href="#faq">שאלות נפוצות</a>
           <a href="#contact">צור קשר</a>
+          <a href="#client" className="staff-link">כניסת לקוחות</a>
           <a href="#staff" className="staff-link">אזור צוות</a>
         </nav>
 
@@ -2233,9 +2302,31 @@ function App() {
           <p className="pricing-note">* המחירים להמחשה — יש לעדכן לתעריפי המשרד בפועל.</p>
         </section>
 
+        {route === 'client' && !clientAuthed && (
+          <section className="section client-login-section" aria-label="כניסת לקוחות">
+            <div className="client-login-card">
+              <p className="eyebrow">אזור אישי · כניסת לקוחות</p>
+              <h2>כניסה לתיק האישי שלך</h2>
+              <p className="client-login-sub">הזן/י את מספר התיק וקוד הגישה שקיבלת מהמשרד. אזור זה מופרד ומאובטח — פרטי הלקוחות אינם חשופים בדף הכללי.</p>
+              <form onSubmit={handleClientLogin}>
+                <label>מספר תיק
+                  <input value={clientLoginForm.caseId} onChange={(e) => setClientLoginForm((f) => ({ ...f, caseId: e.target.value }))} placeholder="למשל MY-20481" />
+                </label>
+                <label>קוד גישה
+                  <input type="password" value={clientLoginForm.code} onChange={(e) => setClientLoginForm((f) => ({ ...f, code: e.target.value }))} />
+                </label>
+                {clientLoginForm.error && <p className="refund-error">{clientLoginForm.error}</p>}
+                <button type="submit" className="primary-btn submit-btn" disabled={clientLoginForm.busy}>{clientLoginForm.busy ? 'מתחבר...' : 'כניסה'}</button>
+              </form>
+              <a className="bo-back-link" href="#legal-tool" onClick={() => { window.location.hash = ''; }}>← חזרה לאתר</a>
+            </div>
+          </section>
+        )}
+
+        {clientAuthed && (
         <section id="portal" className="section portal-section" aria-label="לוח לקוח אישי">
           <div className="section-header">
-            <p className="eyebrow">לוח לקוח</p>
+            <p className="eyebrow">לוח לקוח · {clientInfo?.name || activeProfile.name}</p>
             <h2>הדף האישי של {activeProfile.name}</h2>
             <p className="portal-link-hint">קישור אישי: {personalPortalLink}</p>
           </div>
@@ -2590,6 +2681,7 @@ function App() {
             </div>
           )}
         </section>
+        )}
 
         <section className="section legal-review-section" aria-label="שאלון בדיקה משפטית">
           <div className="section-header">
