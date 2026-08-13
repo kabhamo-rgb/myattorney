@@ -533,6 +533,52 @@ app.post('/api/refund-requests', (req, res) => {
   res.status(201).json({ success: true, id: lead.id })
 })
 
+/* ===================== PUBLIC: Stripe checkout ================== */
+// Canonical price list (server-side, in ILS) — never trust client amounts.
+const PRICING = {
+  'lien-check': { name: 'בדיקת עיקול / עיקול כספים ביתר', amount: 290 },
+  'single-form': { name: 'הכנת טופס משפטי בודד', amount: 190 },
+  'form-set': { name: 'סט טפסים לתיק שלם', amount: 490 },
+}
+app.post('/api/create-checkout', async (req, res) => {
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) {
+    res.json({ needsKey: true })
+    return
+  }
+  const tier = String(req.body?.tier || '')
+  const item = PRICING[tier]
+  if (!item) {
+    res.status(400).json({ error: 'שירות לא מזוהה' })
+    return
+  }
+  try {
+    const Stripe = (await import('stripe')).default
+    const stripe = new Stripe(key)
+    const origin = req.headers.origin || `https://${req.headers.host}`
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'ils',
+            product_data: { name: item.name },
+            unit_amount: item.amount * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      // Apple Pay / Google Pay appear automatically on Stripe's hosted Checkout.
+      success_url: `${origin}/?paid=1#pricing`,
+      cancel_url: `${origin}/#pricing`,
+    })
+    appendAudit({ area: 'payments', action: 'checkout_created', actor: 'public', detail: `${item.name} | ₪${item.amount}` })
+    res.json({ url: session.url })
+  } catch (e) {
+    res.json({ error: 'stripe_error', detail: String(e?.message || e).slice(0, 200) })
+  }
+})
+
 /* ===================== STAFF: authentication ===================== */
 app.post('/api/staff/login', (req, res) => {
   const { username, pin } = req.body || {}
