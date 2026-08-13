@@ -703,6 +703,16 @@ function App() {
   const [garnishResult, setGarnishResult] = useState<ReturnType<typeof buildGarnishmentAssessment> | null>(null)
   const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, sending: false, done: false, error: '' })
   const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[] } | null>(null)
+  const [aiResult, setAiResult] = useState<{
+    caseDecoding?: string
+    legalAnalysis?: string
+    steps?: string[]
+    remedies?: string[]
+    sources?: { title?: string; url?: string }[]
+    riskLevel?: string
+    disclaimer?: string
+  } | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => {
     window.localStorage.setItem(selectedProfileStorageKey, selectedProfileId)
@@ -990,6 +1000,8 @@ function App() {
       return
     }
 
+    runAiAnalysis({ file: uploadedFile })
+
     const tempDocumentId = `${activeProfile.id}-${Date.now()}`
     let persistedDocument: DocumentRecord = {
       id: tempDocumentId,
@@ -1075,6 +1087,33 @@ function App() {
     })
   }
 
+  const runAiAnalysis = async (opts: { question?: string; file?: File | null }) => {
+    setAiLoading(true)
+    setAiResult(null)
+    try {
+      let response: Response
+      if (opts.file) {
+        const body = new FormData()
+        body.append('file', opts.file)
+        if (opts.question) body.append('question', opts.question)
+        response = await fetch(`${apiBaseUrl}/api/legal-analyze`, { method: 'POST', body })
+      } else {
+        response = await fetch(`${apiBaseUrl}/api/legal-analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: opts.question || '' }),
+        })
+      }
+      const data = await response.json()
+      if (data && data.analysis) setAiResult(data.analysis)
+      else setAiResult(null)
+    } catch {
+      setAiResult(null)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   const handleQuestionSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!legalQuestion.trim()) {
@@ -1094,6 +1133,7 @@ function App() {
     setReviewResult(assessment)
     setLookupSources(getLegalSources(legalQuestion))
     setIsCheckingQuestion(false)
+    runAiAnalysis({ question: legalQuestion })
   }
 
   const startLiensCheck = () => {
@@ -1702,6 +1742,47 @@ function App() {
             <p className="tool-disclaimer">
               בדיקה כללית ומיידית — הערכה ראשונית בלבד, אינה מהווה ייעוץ משפטי מחייב.
             </p>
+
+            {aiLoading && (
+              <div className="ai-loading">🧠 מפענח לעומק את הפנייה מול מקורות משפטיים…</div>
+            )}
+
+            {aiResult && (
+              <div className="review-result ai-result" aria-live="polite">
+                <div className="report-header">
+                  <h3>ניתוח משפטי מפוענח</h3>
+                  {aiResult.riskLevel && <span className="risk-pill">{aiResult.riskLevel}</span>}
+                </div>
+                {aiResult.caseDecoding && (
+                  <div className="result-block"><strong>פענוח המקרה</strong><p>{aiResult.caseDecoding}</p></div>
+                )}
+                {aiResult.legalAnalysis && (
+                  <div className="result-block"><strong>ניתוח משפטי</strong><p>{aiResult.legalAnalysis}</p></div>
+                )}
+                {Array.isArray(aiResult.steps) && aiResult.steps.length > 0 && (
+                  <div className="result-block"><strong>שלבי טיפול מוצעים</strong>
+                    <ul>{aiResult.steps.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                  </div>
+                )}
+                {Array.isArray(aiResult.remedies) && aiResult.remedies.length > 0 && (
+                  <div className="result-block"><strong>סעדים אפשריים</strong>
+                    <ul>{aiResult.remedies.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                  </div>
+                )}
+                {Array.isArray(aiResult.sources) && aiResult.sources.length > 0 && (
+                  <div className="result-block sources-block"><strong>מקורות</strong>
+                    <ul>{aiResult.sources.map((s, i) => (
+                      <li key={i}>{s.url ? <a href={s.url} target="_blank" rel="noreferrer noopener">{s.title || s.url}</a> : (s.title || '')}</li>
+                    ))}</ul>
+                  </div>
+                )}
+                <p className="tool-disclaimer">{aiResult.disclaimer || 'מידע כללי בלבד — אינו ייעוץ משפטי מחייב.'}</p>
+                <div className="result-cta">
+                  <a className="primary-btn" href="#pricing">🧾 הכנת טפסים ושליחה אונליין</a>
+                  <a className="secondary-btn" href="#contact">המשך לשירות מלא</a>
+                </div>
+              </div>
+            )}
 
             {heroTab === 'garnish' && garnishResult && (
               <div className="review-result garnish-result" aria-live="polite">
