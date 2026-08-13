@@ -1578,3 +1578,41 @@
 }
 .ai-result .report-header h3 { color: #4338ca; }
 .ai-result .result-block p { line-height: 1.7; }
+
+/* Camera + upload row */
+.upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.camera-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  border: 2px dashed #86efac; border-radius: 16px; padding: 30px 18px;
+  background: #f0fdf4; color: #14532d; text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.camera-btn:hover { border-color: #16a34a; background: #dcfce7; }
+.camera-btn strong { font-size: 17px; }
+.camera-btn input[type="file"] { display: none; }
+
+/* Form-retrieval links */
+.forms-links { margin-top: 12px; border-top: 1px dashed #bae6fd; padding-top: 10px; }
+.forms-links > strong { color: #0369a1; display: block; margin-bottom: 8px; }
+.forms-links ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+.forms-links li { padding-inline-start: 20px; position: relative; }
+.forms-links li::before { content: "📄"; position: absolute; inset-inline-start: 0; font-size: 13px; }
+.forms-links a { color: #0369a1; text-decoration: underline; font-weight: 600; font-size: 14px; }
+
+/* -------- Mobile / iOS / Android polish -------- */
+@media (max-width: 760px) {
+  .upload-row { grid-template-columns: 1fr; }
+  .hero-tool-intro h1 { font-size: 30px; }
+  .tool-card { padding: 16px; border-radius: 16px; }
+  .tool-tab { font-size: 13px; padding: 10px 4px; }
+  .result-cta { flex-direction: column; }
+  .result-cta .primary-btn, .result-cta .secondary-btn { width: 100%; text-align: center; }
+  .primary-btn, .secondary-btn { padding: 14px 18px; font-size: 16px; } /* bigger touch targets */
+  .main-nav { display: none; } /* keep header clean on phones; tool is the focus */
+}
+/* Safe-area padding for iOS notch + comfortable tap targets */
+@supports (padding: env(safe-area-inset-top)) {
+  .page-shell { padding-bottom: env(safe-area-inset-bottom); }
+}
+input, select, textarea, button { -webkit-tap-highlight-color: transparent; }
+input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */

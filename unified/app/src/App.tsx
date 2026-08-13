@@ -160,10 +160,26 @@ const generalSources = [
   { t: 'כל זכות — מאגר הזכויות הציבורי', u: KZ + '%D7%A2%D7%9E%D7%95%D7%93_%D7%A8%D7%90%D7%A9%D7%99' },
   { t: 'מאגר החקיקה הלאומי — חוקי מדינת ישראל (gov.il)', u: 'https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database' },
 ]
+// Official form-retrieval links by request type.
+const ECA = 'https://go.gov.il/ecamain'
+const formLinksByLabel: Record<string, { t: string; u: string }[]> = {
+  'עיקולים והוצאה לפועל': [
+    { t: 'רשות האכיפה והגבייה — בקשות, טפסים ואזור אישי (הוצאה לפועל)', u: ECA },
+    { t: 'בקשה בטענת "פרעתי" / השבת כספים — מדריך (כל זכות)', u: KZ + '%D7%9E%D7%93%D7%A8%D7%99%D7%9A_%D7%9C%D7%97%D7%99%D7%99%D7%91_%D7%91%D7%94%D7%95%D7%A6%D7%90%D7%94_%D7%9C%D7%A4%D7%95%D7%A2%D7%9C_%D7%A9%D7%99%D7%A9_%D7%A2%D7%99%D7%A7%D7%95%D7%9C%D7%99%D7%9D_%D7%A2%D7%9C%D7%99%D7%95_%D7%90%D7%95_%D7%A2%D7%9C_%D7%A8%D7%9B%D7%95%D7%A9%D7%95' },
+  ],
+  'דיני עבודה ופיטורים': [
+    { t: 'תביעה בבית הדין לעבודה — מידע וטפסים (gov.il)', u: 'https://www.gov.il/he/departments/labor_court' },
+  ],
+}
+const generalForms = [{ t: 'רשות האכיפה והגבייה (הוצאה לפועל) — טפסים והליכים', u: ECA }]
 const getLegalSources = (text: string) => {
   const t = (text || '').toLowerCase()
   const topic = legalTopics.find((x) => x.match.some((k) => t.includes(k.toLowerCase())))
-  return { topicLabel: topic?.label || 'כללי', sources: [...(topic?.sources || []), ...generalSources] }
+  return {
+    topicLabel: topic?.label || 'כללי',
+    sources: [...(topic?.sources || []), ...generalSources],
+    forms: (topic && formLinksByLabel[topic.label]) || generalForms,
+  }
 }
 
 const initialForm = {
@@ -702,7 +718,7 @@ function App() {
   const [garnishInput, setGarnishInput] = useState<GarnishmentInput>({ originalDebt: '', totalCollected: '', extraCharges: '', incomeType: 'salary' })
   const [garnishResult, setGarnishResult] = useState<ReturnType<typeof buildGarnishmentAssessment> | null>(null)
   const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, sending: false, done: false, error: '' })
-  const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[] } | null>(null)
+  const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[]; forms?: { t: string; u: string }[] } | null>(null)
   const [aiResult, setAiResult] = useState<{
     caseDecoding?: string
     legalAnalysis?: string
@@ -1681,14 +1697,22 @@ function App() {
 
             {heroTab === 'document' && (
               <form className="tool-form" onSubmit={handleDocumentReview}>
-                <label className="dropzone">
-                  <span className="dropzone-icon">⬆️</span>
-                  <strong>{uploadedFile ? uploadedFile.name : 'לחץ כאן להעלאת מסמך'}</strong>
-                  <span className="dropzone-hint">PDF · Word · TXT — התשובה מופיעה מיד, ללא המתנה</span>
-                  <input type="file" accept=".pdf,.doc,.docx,.txt,.rtf" onChange={handleFileUpload} />
-                </label>
+                <div className="upload-row">
+                  <label className="dropzone">
+                    <span className="dropzone-icon">⬆️</span>
+                    <strong>{uploadedFile ? uploadedFile.name : 'העלאת קובץ'}</strong>
+                    <span className="dropzone-hint">PDF · Word · תמונה · TXT</span>
+                    <input type="file" accept=".pdf,.doc,.docx,.txt,.rtf,image/*" onChange={handleFileUpload} />
+                  </label>
+                  <label className="camera-btn">
+                    <span className="dropzone-icon">📷</span>
+                    <strong>צילום מסמך</strong>
+                    <span className="dropzone-hint">מצלמים ומנתחים מיד</span>
+                    <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} />
+                  </label>
+                </div>
                 <button type="submit" className="primary-btn submit-btn" disabled={isUploadingDocument}>
-                  {isUploadingDocument ? 'בודק...' : '🔎 בדוק מסמך עכשיו'}
+                  {isUploadingDocument ? 'מנתח...' : '🔎 בדוק מסמך עכשיו'}
                 </button>
               </form>
             )}
@@ -1817,6 +1841,16 @@ function App() {
                       ))}
                     </ul>
                     <p className="sources-note">התשובה מבוססת על מקורות ציבוריים חינמיים (כל זכות ומאגר החקיקה הלאומי). מומלץ לעיין במקור.</p>
+                    {lookupSources.forms && lookupSources.forms.length > 0 && (
+                      <div className="forms-links">
+                        <strong>שליפת טפסים לפי סוג הבקשה</strong>
+                        <ul>
+                          {lookupSources.forms.map((f) => (
+                            <li key={f.u}><a href={f.u} target="_blank" rel="noreferrer noopener">{f.t}</a></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1901,6 +1935,16 @@ function App() {
                       ))}
                     </ul>
                     <p className="sources-note">התשובה מבוססת על מקורות ציבוריים חינמיים (כל זכות ומאגר החקיקה הלאומי). מומלץ לעיין במקור.</p>
+                    {lookupSources.forms && lookupSources.forms.length > 0 && (
+                      <div className="forms-links">
+                        <strong>שליפת טפסים לפי סוג הבקשה</strong>
+                        <ul>
+                          {lookupSources.forms.map((f) => (
+                            <li key={f.u}><a href={f.u} target="_blank" rel="noreferrer noopener">{f.t}</a></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
 
