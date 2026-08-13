@@ -229,6 +229,51 @@ app.post('/api/leads', (req, res) => {
   res.status(201).json({ success: true, lead })
 })
 
+/* ===================== PUBLIC: refund requests =================== */
+// Registered + consented request that the FIRM handles. Does not file anything
+// with any authority automatically. Stored as a lead so staff can act on it.
+app.post('/api/refund-requests', (req, res) => {
+  const { fullName, idNumber, phone, email, consent, details } = req.body || {}
+  if (!fullName || !(phone || email)) {
+    res.status(400).json({ error: 'נדרש שם מלא וטלפון או דוא"ל' })
+    return
+  }
+  if (!consent) {
+    res.status(400).json({ error: 'נדרש אישור מפורש לשליחת הבקשה בשמך' })
+    return
+  }
+  const now = new Date().toISOString()
+  const snapshot = details && typeof details === 'object' ? details : {}
+  const summaryLine = snapshot.summary ? String(snapshot.summary) : 'בקשת בדיקת החזר עיקול'
+  const lead = {
+    id: genId('refund'),
+    type: 'refund',
+    name: String(fullName).trim(),
+    idNumber: String(idNumber || '').trim(),
+    phone: String(phone || '').trim(),
+    email: String(email || '').trim(),
+    topic: 'עיקול / בקשת החזר',
+    urgency: 'גבוהה',
+    message: summaryLine,
+    refund: {
+      estimatedOverpaid: snapshot.estimatedOverpaid ?? null,
+      originalDebt: snapshot.originalDebt ?? null,
+      totalCollected: snapshot.totalCollected ?? null,
+      incomeType: snapshot.incomeType ?? null,
+      verdict: snapshot.verdict ?? null,
+    },
+    consentAt: now,
+    status: 'new',
+    owner: '',
+    source: 'בקשת החזר',
+    createdAt: now,
+  }
+  const current = load('leads', [])
+  save('leads', [lead, ...current])
+  appendAudit({ area: 'leads', action: 'refund_request', actor: 'public', detail: `${lead.name} | החזר עיקול${lead.refund.estimatedOverpaid ? ` | ~₪${lead.refund.estimatedOverpaid}` : ''}`, refId: lead.id })
+  res.status(201).json({ success: true, id: lead.id })
+})
+
 /* ===================== STAFF: authentication ===================== */
 app.post('/api/staff/login', (req, res) => {
   const { username, pin } = req.body || {}
