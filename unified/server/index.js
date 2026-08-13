@@ -203,6 +203,26 @@ const upload = multer({ storage })
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'myattorney-unified' }))
 
+// Diagnostic: which AI provider is configured (never exposes the key).
+app.get('/api/ai-status', (_req, res) => {
+  const provider = process.env.GEMINI_API_KEY
+    ? 'gemini'
+    : process.env.ANTHROPIC_API_KEY
+      ? 'anthropic'
+      : process.env.OPENAI_API_KEY
+        ? 'openai'
+        : 'none'
+  const model =
+    provider === 'gemini'
+      ? process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+      : provider === 'anthropic'
+        ? process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest'
+        : provider === 'openai'
+          ? process.env.OPENAI_MODEL || 'gpt-4o-mini'
+          : null
+  res.json({ aiEnabled: provider !== 'none', provider, model })
+})
+
 /* ===================== PUBLIC: leads (contact) ==================== */
 app.post('/api/leads', (req, res) => {
   const { name, phone, email, topic, urgency, message } = req.body || {}
