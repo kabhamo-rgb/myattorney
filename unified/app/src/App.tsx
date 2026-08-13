@@ -175,6 +175,10 @@ const formLinksByLabel: Record<string, { t: string; u: string }[]> = {
   ],
 }
 const generalForms = [{ t: 'רשות האכיפה והגבייה (הוצאה לפועל) — טפסים והליכים', u: ECA }]
+
+// WhatsApp — high-converting contact channel. Replace with the office's real number (intl format, no +).
+const WHATSAPP_NUMBER = '972500000000'
+const WHATSAPP_MSG = encodeURIComponent('שלום, הגעתי מהאתר MyAttorney ואשמח לבדוק את המקרה שלי.')
 const getLegalSources = (text: string) => {
   const t = (text || '').toLowerCase()
   const topic = legalTopics.find((x) => x.match.some((k) => t.includes(k.toLowerCase())))
@@ -1756,6 +1760,17 @@ function App() {
         </a>
       </header>
 
+      <a
+        className="whatsapp-fab"
+        href={`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MSG}`}
+        target="_blank"
+        rel="noreferrer noopener"
+        aria-label="דברו איתנו בוואטסאפ"
+      >
+        <span className="whatsapp-icon">💬</span>
+        <span className="whatsapp-label">דברו עם עו״ד בוואטסאפ</span>
+      </a>
+
       <main>
         <section id="legal-tool" className="hero-tool section">
           <div className="hero-tool-intro">
@@ -1913,6 +1928,9 @@ function App() {
                     <span>הערכת גבייה ביתר</span>
                     <strong>{'₪' + garnishResult.estimatedOverpaid.toLocaleString('he-IL')}</strong>
                   </div>
+                )}
+                {garnishResult.estimatedOverpaid > 0 && (
+                  <p className="success-fee-note">💚 <strong>ללא תשלום מראש</strong> — אנחנו מטפלים בהגשת הבקשה, ותשלמו עמלה רק מהסכום שנחזיר לכם בפועל.</p>
                 )}
                 <p className="verdict-line">{garnishResult.verdict}</p>
                 <p>{garnishResult.summary}</p>

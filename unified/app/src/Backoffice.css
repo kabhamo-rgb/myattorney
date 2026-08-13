@@ -163,3 +163,9 @@
   .bo-sidebar { flex-direction: row; flex-wrap: wrap; }
   .bo-sidebar nav { flex-direction: row; flex-wrap: wrap; }
 }
+
+/* CRM enhancements */
+.bo-stat.highlight { border-color: #16a34a; background: #f0fdf4; }
+.bo-stat.highlight strong { color: #16a34a; }
+.bo-note { width: 200px; border: 1px solid var(--bo-line); border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 14px; }
+.bo-table input[type="date"] { border: 1px solid var(--bo-line); border-radius: 8px; padding: 7px 9px; font-family: inherit; font-size: 13px; }

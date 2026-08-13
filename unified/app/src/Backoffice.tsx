@@ -18,6 +18,11 @@ type Lead = {
   owner?: string
   source?: string
   createdAt?: string
+  note?: string
+  followUp?: string
+  idNumber?: string
+  type?: string
+  refund?: { estimatedOverpaid?: number }
 }
 
 type EventItem = { id: string; title: string; date: string; type: string; done: boolean }
@@ -67,7 +72,7 @@ function Backoffice() {
   const [user, setUser] = useState<StaffUser | null>(null)
   const [loginData, setLoginData] = useState({ username: 'admin', pin: '' })
   const [loginError, setLoginError] = useState('')
-  const [tab, setTab] = useState<'dashboard' | 'leads' | 'calendar' | 'hearings' | 'tasks' | 'audit' | 'settings'>('dashboard')
+  const [tab, setTab] = useState<'dashboard' | 'leads' | 'refunds' | 'calendar' | 'hearings' | 'tasks' | 'audit' | 'settings'>('dashboard')
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [events, setEvents] = useState<EventItem[]>([])
@@ -76,6 +81,7 @@ function Backoffice() {
   const [audit, setAudit] = useState<AuditItem[]>([])
   const [settings, setSettings] = useState<Settings>({})
   const [notice, setNotice] = useState('')
+  const [overview, setOverview] = useState<any>(null)
 
   const authFetch = useCallback(
     async (path: string, options: RequestInit = {}) => {
@@ -101,13 +107,14 @@ function Backoffice() {
   const refreshAll = useCallback(async () => {
     if (!token) return
     try {
-      const [l, e, h, t, a, s] = await Promise.all([
+      const [l, e, h, t, a, s, ov] = await Promise.all([
         authFetch('/api/leads').then((r) => r.json()),
         authFetch('/api/events').then((r) => r.json()),
         authFetch('/api/hearings').then((r) => r.json()),
         authFetch('/api/tasks').then((r) => r.json()),
         authFetch('/api/audit?limit=80').then((r) => r.json()),
         authFetch('/api/settings').then((r) => r.json()),
+        authFetch('/api/crm/overview').then((r) => r.json()).catch(() => null),
       ])
       setLeads(l.leads || [])
       setEvents(e.events || [])
@@ -115,6 +122,7 @@ function Backoffice() {
       setTasks(t.tasks || [])
       setAudit(a.logs || [])
       setSettings(s.settings || {})
+      setOverview(ov || null)
     } catch {
       /* handled by authFetch (401) */
     }
@@ -294,9 +302,11 @@ function Backoffice() {
   }
 
   /* -------------------- Authenticated app -------------------- */
+  const refundLeads = leads.filter((l) => (l as any).type === 'refund' || l.source === 'בקשת החזר')
   const tabs: Array<[typeof tab, string]> = [
     ['dashboard', 'לוח בקרה'],
     ['leads', `פניות (${leads.length})`],
+    ['refunds', `בקשות החזר (${refundLeads.length})`],
     ['calendar', 'יומן'],
     ['hearings', 'דיונים'],
     ['tasks', 'משימות'],
@@ -328,7 +338,21 @@ function Backoffice() {
 
         {tab === 'dashboard' && (
           <section>
-            <h2>לוח בקרה</h2>
+            <h2>לוח בקרה — CRM</h2>
+            {overview && (
+              <>
+                <h3>משפך המרה</h3>
+                <div className="bo-stat-grid">
+                  <div className="bo-stat"><strong>{overview.leads?.total ?? 0}</strong><span>סה"כ פניות</span></div>
+                  <div className="bo-stat"><strong>{overview.aiAnalyses ?? 0}</strong><span>בדיקות AI</span></div>
+                  <div className="bo-stat highlight"><strong>{overview.refunds?.count ?? 0}</strong><span>בקשות החזר</span></div>
+                  <div className="bo-stat highlight"><strong>{'₪' + Number(overview.refunds?.estimatedTotal || 0).toLocaleString('he-IL')}</strong><span>סכום החזר פוטנציאלי</span></div>
+                  <div className="bo-stat"><strong>{overview.payments?.count ?? 0}</strong><span>תשלומים שנפתחו</span></div>
+                  <div className="bo-stat"><strong>{overview.conversionRate ?? 0}%</strong><span>שיעור המרה</span></div>
+                </div>
+              </>
+            )}
+            <h3>סטטוס עבודה</h3>
             <div className="bo-stat-grid">
               <div className="bo-stat"><strong>{stats.newLeads}</strong><span>פניות חדשות</span></div>
               <div className="bo-stat"><strong>{stats.activeLeads}</strong><span>פניות בטיפול</span></div>
@@ -379,6 +403,41 @@ function Backoffice() {
                   </tr>
                 ))}
                 {leads.length === 0 && <tr><td colSpan={8} className="bo-empty">אין פניות עדיין</td></tr>}
+              </tbody>
+            </table>
+          </section>
+        )}
+
+        {tab === 'refunds' && (
+          <section>
+            <div className="bo-section-head">
+              <h2>בקשות החזר עיקול 💸</h2>
+              <span className="bo-badge">פוטנציאל: ₪{Number(overview?.refunds?.estimatedTotal || 0).toLocaleString('he-IL')}</span>
+            </div>
+            <table className="bo-table">
+              <thead>
+                <tr><th>שם</th><th>ת"ז</th><th>טלפון</th><th>הערכת החזר</th><th>סטטוס</th><th>מעקב</th><th>הערה</th></tr>
+              </thead>
+              <tbody>
+                {refundLeads.map((l) => (
+                  <tr key={l.id}>
+                    <td>{l.name}</td>
+                    <td>{(l as any).idNumber || '-'}</td>
+                    <td>{l.phone || l.email}</td>
+                    <td><strong>{(l as any).refund?.estimatedOverpaid ? '₪' + Number((l as any).refund.estimatedOverpaid).toLocaleString('he-IL') : '-'}</strong></td>
+                    <td>
+                      <select value={l.status} onChange={(e) => updateLead(l.id, { status: e.target.value })}>
+                        <option value="new">חדש</option>
+                        <option value="active">בטיפול</option>
+                        <option value="booked">הוגש</option>
+                        <option value="closed">הוחזר / נסגר</option>
+                      </select>
+                    </td>
+                    <td><input type="date" defaultValue={(l as any).followUp || ''} onBlur={(e) => updateLead(l.id, { followUp: e.target.value })} /></td>
+                    <td><input className="bo-note" defaultValue={(l as any).note || ''} onBlur={(e) => updateLead(l.id, { note: e.target.value })} placeholder="הערה / סיכום שיחה" /></td>
+                  </tr>
+                ))}
+                {refundLeads.length === 0 && <tr><td colSpan={7} className="bo-empty">אין בקשות החזר עדיין</td></tr>}
               </tbody>
             </table>
           </section>

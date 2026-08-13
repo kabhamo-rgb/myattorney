@@ -1649,3 +1649,21 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 .client-mode main > .section:not(.portal-section):not(.client-login-section) { display: none; }
 .client-mode .profile-switcher { display: none; }
 .client-mode .footer { display: none; }
+
+/* WhatsApp floating button + success-fee note */
+.whatsapp-fab {
+  position: fixed; bottom: 20px; inset-inline-start: 20px; z-index: 900;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #25d366; color: #fff; border-radius: 999px;
+  padding: 12px 18px; font-weight: 700; font-size: 15px; text-decoration: none;
+  box-shadow: 0 10px 30px rgba(37,211,102,0.45); transition: transform .15s;
+}
+.whatsapp-fab:hover { transform: translateY(-2px); }
+.whatsapp-icon { font-size: 20px; }
+.client-mode .whatsapp-fab { display: none; }
+@media (max-width: 600px) { .whatsapp-fab .whatsapp-label { display: none; } .whatsapp-fab { padding: 14px; inset-inline-start: 14px; bottom: 14px; } }
+
+.success-fee-note {
+  background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46;
+  border-radius: 12px; padding: 12px 16px; font-size: 15px; margin: 6px 0 12px; line-height: 1.5;
+}
