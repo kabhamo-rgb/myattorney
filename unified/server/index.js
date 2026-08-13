@@ -265,27 +265,76 @@ const SOURCE_HINTS = `מקורות ציבוריים חינמיים מהם נית
 - כל זכות — פיצויי פיטורים לעובד שפוטר: https://www.kolzchut.org.il/he/פיצויי_פיטורים_לעובד_שפוטר
 - מאגר החקיקה הלאומי (חוקי מדינת ישראל): https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database`
 
-const callClaude = async (system, userContent) => {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { error: 'no_key' }
-  const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest'
-  let resp
+// Provider-agnostic LLM call. Uses whichever API key is configured:
+// GEMINI_API_KEY (free, no card) → ANTHROPIC_API_KEY → OPENAI_API_KEY.
+const callLLM = async (system, userContent) => {
+  const geminiKey = process.env.GEMINI_API_KEY
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  const openaiKey = process.env.OPENAI_API_KEY
+
   try {
-    resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: 1800, system, messages: [{ role: 'user', content: userContent }] }),
-    })
+    if (geminiKey) {
+      const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: 'user', parts: [{ text: userContent }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1800, responseMimeType: 'application/json' },
+        }),
+      })
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => '')
+        return { error: 'api_error', provider: 'gemini', status: resp.status, detail: t.slice(0, 400) }
+      }
+      const data = await resp.json()
+      const text = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('\n').trim()
+      return { text }
+    }
+
+    if (anthropicKey) {
+      const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest'
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model, max_tokens: 1800, system, messages: [{ role: 'user', content: userContent }] }),
+      })
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => '')
+        return { error: 'api_error', provider: 'anthropic', status: resp.status, detail: t.slice(0, 400) }
+      }
+      const data = await resp.json()
+      const text = (data.content || []).map((b) => b.text || '').join('\n').trim()
+      return { text }
+    }
+
+    if (openaiKey) {
+      const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${openaiKey}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
+          response_format: { type: 'json_object' },
+          max_tokens: 1800,
+        }),
+      })
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => '')
+        return { error: 'api_error', provider: 'openai', status: resp.status, detail: t.slice(0, 400) }
+      }
+      const data = await resp.json()
+      const text = (data.choices?.[0]?.message?.content || '').trim()
+      return { text }
+    }
   } catch (e) {
     return { error: 'network', detail: String(e).slice(0, 200) }
   }
-  if (!resp.ok) {
-    const t = await resp.text().catch(() => '')
-    return { error: 'api_error', status: resp.status, detail: t.slice(0, 400) }
-  }
-  const data = await resp.json()
-  const text = (data.content || []).map((b) => b.text || '').join('\n').trim()
-  return { text }
+
+  return { error: 'no_key' }
 }
 
 app.post('/api/legal-analyze', uploadMem.single('file'), async (req, res) => {
@@ -308,7 +357,7 @@ ${SOURCE_HINTS}
 תוכן המסמך שחולץ (עד 12000 תווים):
 ${(docText || '(לא חולץ טקסט מהמסמך)').slice(0, 12000)}`
 
-    const result = await callClaude(system, userContent)
+    const result = await callLLM(system, userContent)
     if (result.error === 'no_key') {
       res.json({ needsKey: true })
       return
