@@ -341,7 +341,7 @@ const fetchWithTimeout = async (url, opts, ms = 15000) => {
 
 // Provider-agnostic LLM call. Uses whichever API key is configured:
 // GEMINI_API_KEY (free, no card) → ANTHROPIC_API_KEY → OPENAI_API_KEY.
-const callLLM = async (system, userContent) => {
+const callLLM = async (system, userContent, images = []) => {
   const geminiKey = process.env.GEMINI_API_KEY
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   const openaiKey = process.env.OPENAI_API_KEY
@@ -367,7 +367,7 @@ const callLLM = async (system, userContent) => {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: system }] },
-              contents: [{ role: 'user', parts: [{ text: userContent }] }],
+              contents: [{ role: 'user', parts: [{ text: userContent }, ...images.map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.base64 } }))] }],
               generationConfig: { temperature: 0.3, maxOutputTokens: 3000, responseMimeType: 'application/json' },
             }),
           }, 14000)
@@ -435,8 +435,19 @@ const callLLM = async (system, userContent) => {
 app.post('/api/legal-analyze', uploadMem.single('file'), async (req, res) => {
   try {
     const question = (req.body?.question || '').toString().trim()
-    const docText = await extractDocText(req.file, req.body?.text)
-    if (!question && !docText) {
+    const file = req.file
+    const mime = file?.mimetype || ''
+    const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(file?.originalname || '')
+
+    let images = []
+    let docText = ''
+    if (isImage && file?.buffer) {
+      // Photographed / scanned document — send the image to the vision model directly.
+      images = [{ mimeType: mime || 'image/jpeg', base64: file.buffer.toString('base64') }]
+    } else {
+      docText = await extractDocText(file, req.body?.text)
+    }
+    if (!question && !docText && images.length === 0) {
       res.status(400).json({ error: 'לא סופקה שאלה או מסמך קריא' })
       return
     }
@@ -447,12 +458,16 @@ ${SOURCE_HINTS}
 החזר אך ורק JSON תקין במבנה הבא (ללא טקסט נוסף):
 {"caseDecoding":"פענוח קצר וממוקד של המקרה","legalAnalysis":"הסבר משפטי מקצועי כללי המבוסס על חוק ועקרונות","steps":["צעד 1","צעד 2"],"remedies":["סעד אפשרי 1","סעד אפשרי 2"],"sources":[{"title":"שם המקור","url":"קישור"}],"riskLevel":"נמוך/בינוני/גבוה","disclaimer":"מידע כללי בלבד, אינו ייעוץ משפטי מחייב."}`
 
-    const userContent = `שאלת/פניית המשתמש: ${question || '(המשתמש העלה מסמך לבדיקה)'}
+    const userContent = images.length > 0
+      ? `שאלת/פניית המשתמש: ${question || '(המשתמש צילם/העלה תמונת מסמך לבדיקה)'}
+
+מצורפת תמונה של מסמך — קרא את הטקסט שבתמונה ופענח את המקרה לפי תוכנו.`
+      : `שאלת/פניית המשתמש: ${question || '(המשתמש העלה מסמך לבדיקה)'}
 
 תוכן המסמך שחולץ (עד 12000 תווים):
 ${(docText || '(לא חולץ טקסט מהמסמך)').slice(0, 12000)}`
 
-    const result = await callLLM(system, userContent)
+    const result = await callLLM(system, userContent, images)
     if (result.error === 'no_key') {
       res.json({ needsKey: true })
       return
