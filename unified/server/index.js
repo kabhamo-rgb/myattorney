@@ -223,35 +223,42 @@ app.get('/api/ai-status', (_req, res) => {
   res.json({ aiEnabled: provider !== 'none', provider, model })
 })
 
-// Diagnostic: run one live LLM call and report the outcome (no secrets).
-app.get('/api/ai-test', async (req, res) => {
-  if (req.query.run !== '1') {
-    res.json({ hint: 'הוסף ?run=1 כדי להריץ קריאת בדיקה חיה' })
+// Diagnostic: run one live LLM call in the BACKGROUND (avoids client timeout).
+// GET ?run=1 starts it; GET with no param returns the last stored result.
+let lastAiTest = null
+app.get('/api/ai-test', (req, res) => {
+  if (req.query.run === '1') {
+    lastAiTest = { pending: true, startedAt: new Date().toISOString() }
+    ;(async () => {
+      const result = await callLLM(
+        'אתה עוזר משפטי בישראל. החזר JSON תקין בלבד.',
+        'שאלה: קיבלתי עיקול בהוצאה לפועל ונגבה יותר מדי — מה לעשות? החזר {"caseDecoding":"...","legalAnalysis":"...","steps":["..."],"remedies":["..."],"riskLevel":"בינוני","disclaimer":"..."}',
+      )
+      let parsedOk = false
+      if (result.text) {
+        try {
+          JSON.parse(String(result.text).replace(/^```json\s*/i, '').replace(/```$/i, '').trim())
+          parsedOk = true
+        } catch {
+          parsedOk = false
+        }
+      }
+      lastAiTest = {
+        ok: !!result.text,
+        provider: result.provider || null,
+        model: result.model || null,
+        error: result.error || null,
+        status: result.status || null,
+        detail: result.detail ? String(result.detail).slice(0, 300) : null,
+        parsedOk,
+        textSnippet: result.text ? String(result.text).slice(0, 200) : null,
+        finishedAt: new Date().toISOString(),
+      }
+    })()
+    res.json({ started: true, note: 'קרא שוב /api/ai-test (בלי run) בעוד ~15 שניות' })
     return
   }
-  const result = await callLLM(
-    'אתה עוזר משפטי בישראל. החזר JSON תקין בלבד.',
-    'שאלה: קיבלתי עיקול בהוצאה לפועל ונגבה יותר מדי — מה לעשות? החזר {"caseDecoding":"...","legalAnalysis":"...","steps":["..."],"remedies":["..."],"riskLevel":"בינוני","disclaimer":"..."}',
-  )
-  let parsedOk = false
-  if (result.text) {
-    try {
-      JSON.parse(String(result.text).replace(/^```json\s*/i, '').replace(/```$/i, '').trim())
-      parsedOk = true
-    } catch {
-      parsedOk = false
-    }
-  }
-  res.json({
-    ok: !!result.text,
-    provider: result.provider || null,
-    model: result.model || null,
-    error: result.error || null,
-    status: result.status || null,
-    detail: result.detail ? String(result.detail).slice(0, 300) : null,
-    parsedOk,
-    textSnippet: result.text ? String(result.text).slice(0, 200) : null,
-  })
+  res.json({ last: lastAiTest || { note: 'עדיין לא הורץ — קרא עם ?run=1' } })
 })
 
 /* ===================== PUBLIC: leads (contact) ==================== */
@@ -316,6 +323,16 @@ const SOURCE_HINTS = `מקורות ציבוריים חינמיים מהם נית
 - כל זכות — פיצויי פיטורים לעובד שפוטר: https://www.kolzchut.org.il/he/פיצויי_פיטורים_לעובד_שפוטר
 - מאגר החקיקה הלאומי (חוקי מדינת ישראל): https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database`
 
+const fetchWithTimeout = async (url, opts, ms = 15000) => {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), ms)
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal })
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 // Provider-agnostic LLM call. Uses whichever API key is configured:
 // GEMINI_API_KEY (free, no card) → ANTHROPIC_API_KEY → OPENAI_API_KEY.
 const callLLM = async (system, userContent) => {
@@ -339,7 +356,7 @@ const callLLM = async (system, userContent) => {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`
         let resp
         try {
-          resp = await fetch(url, {
+          resp = await fetchWithTimeout(url, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
@@ -347,7 +364,7 @@ const callLLM = async (system, userContent) => {
               contents: [{ role: 'user', parts: [{ text: userContent }] }],
               generationConfig: { temperature: 0.3, maxOutputTokens: 1800, responseMimeType: 'application/json' },
             }),
-          })
+          }, 14000)
         } catch (e) {
           return { error: 'network', detail: String(e).slice(0, 200) }
         }
