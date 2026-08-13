@@ -533,6 +533,37 @@ app.post('/api/refund-requests', (req, res) => {
   res.status(201).json({ success: true, id: lead.id })
 })
 
+/* ===================== CLIENT: private area login =============== */
+// Separate, gated client login (kept fully apart from the public site + admin).
+const seedClients = () => {
+  const f = path.join(dataDir, 'clients.json')
+  if (!fs.existsSync(f)) {
+    writeJson(f, [
+      { profileId: 'oren', caseId: 'MY-20481', name: 'אורן לוי', code: '2481' },
+      { profileId: 'liya', caseId: 'MY-20492', name: 'ליה כהן', code: '2492' },
+      { profileId: 'daniel', caseId: 'MY-20510', name: 'דניאל רז', code: '2510' },
+    ])
+  }
+}
+seedClients()
+const clientSessions = new Map()
+app.post('/api/client/login', (req, res) => {
+  const { caseId, code } = req.body || {}
+  const clients = readJson(path.join(dataDir, 'clients.json'), [])
+  const client = clients.find(
+    (c) => String(c.caseId).toLowerCase() === String(caseId || '').trim().toLowerCase() && String(c.code) === String(code || '').trim(),
+  )
+  if (!client) {
+    appendAudit({ area: 'client', action: 'client_login_failed', actor: 'client', detail: String(caseId || '') })
+    res.status(401).json({ error: 'מספר תיק או קוד גישה שגויים' })
+    return
+  }
+  const token = crypto.randomBytes(20).toString('hex')
+  clientSessions.set(token, { profileId: client.profileId, expiresAt: Date.now() + 60 * 60 * 1000 })
+  appendAudit({ area: 'client', action: 'client_login', actor: 'client', profileId: client.profileId, detail: client.name })
+  res.json({ token, profileId: client.profileId, name: client.name, caseId: client.caseId })
+})
+
 /* ===================== PUBLIC: Stripe checkout ================== */
 // Canonical price list (server-side, in ILS) — never trust client amounts.
 const PRICING = {
