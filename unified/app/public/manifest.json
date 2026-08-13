@@ -1,0 +1,16 @@
+{
+  "name": "MyAttorney — בדיקה משפטית מיידית",
+  "short_name": "MyAttorney",
+  "description": "העלאת או צילום מסמך, שאלה משפטית, בדיקת עיקול והכנת טפסים אונליין — בדיקה משפטית מיידית.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
