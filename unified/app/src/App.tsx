@@ -730,6 +730,8 @@ function App() {
     disclaimer?: string
   } | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [garnishProcessing, setGarnishProcessing] = useState(false)
+  const [procStage, setProcStage] = useState(0)
   const [consent, setConsent] = useState<boolean>(() => {
     try { return !!window.localStorage.getItem('mya-consent') } catch { return false }
   })
@@ -977,6 +979,15 @@ function App() {
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
+
+  // Animated processing stages: advance through 3 stages while a check runs.
+  useEffect(() => {
+    const active = aiLoading || garnishProcessing
+    if (!active) { setProcStage(0); return }
+    setProcStage(0)
+    const id = setInterval(() => setProcStage((s) => Math.min(s + 1, 2)), 1500)
+    return () => clearInterval(id)
+  }, [aiLoading, garnishProcessing])
 
   // Fetch public runtime config (Google client id) once the client area is opened.
   useEffect(() => {
@@ -1296,6 +1307,7 @@ function App() {
   const runAiAnalysis = async (opts: { question?: string; file?: File | null }) => {
     setAiLoading(true)
     setAiResult(null)
+    const startedAt = Date.now()
     try {
       let response: Response
       if (opts.file) {
@@ -1316,7 +1328,10 @@ function App() {
     } catch {
       setAiResult(null)
     } finally {
-      setAiLoading(false)
+      // Keep the animated stages on screen for at least ~4.5s so the experience is visible.
+      const elapsed = Date.now() - startedAt
+      const remaining = Math.max(0, 4500 - elapsed)
+      window.setTimeout(() => setAiLoading(false), remaining)
     }
   }
 
@@ -1355,9 +1370,15 @@ function App() {
   const handleGarnishSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!consent) { setShowConsent(true); return }
-    setGarnishResult(buildGarnishmentAssessment(garnishInput))
-    setLookupSources(getLegalSources('עיקול הוצאה לפועל גבייה כספים מוגנים'))
-    setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
+    const result = buildGarnishmentAssessment(garnishInput)
+    setGarnishResult(null)
+    setGarnishProcessing(true)
+    window.setTimeout(() => {
+      setGarnishResult(result)
+      setLookupSources(getLegalSources('עיקול הוצאה לפועל גבייה כספים מוגנים'))
+      setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
+      setGarnishProcessing(false)
+    }, 4000)
   }
 
   const openRefund = () => setRefund((r) => ({ ...r, open: true, done: false, error: '' }))
@@ -2134,8 +2155,61 @@ function App() {
               בדיקה כללית ומיידית — הערכה ראשונית בלבד, אינה מהווה ייעוץ משפטי מחייב.
             </p>
 
-            {aiLoading && (
-              <div className="ai-loading">🧠 מפענח לעומק את הפנייה מול מקורות משפטיים…</div>
+            {(aiLoading || garnishProcessing) && (
+              <div className="ai-lab" aria-live="polite" aria-busy="true">
+                <div className="ai-lab-grid" aria-hidden="true"></div>
+
+                <div className="ai-orb-stage">
+                  <span className="ai-particle p1"></span>
+                  <span className="ai-particle p2"></span>
+                  <span className="ai-particle p3"></span>
+                  <span className="ai-particle p4"></span>
+                  <div className={`ai-orb stage-${procStage}`}>
+                    <span className="ai-orb-halo"></span>
+                    <span className="ai-orb-ring"></span>
+                    <span className="ai-orb-ring ring-2"></span>
+                    <div className="ai-orb-face">
+                      {procStage === 0 && (
+                        <svg viewBox="0 0 48 48" className="ai-ico">
+                          <path className="draw" d="M24 33V15" />
+                          <path className="draw d2" d="M17 22l7-7 7 7" />
+                          <path className="draw d3" d="M13 33c-4 0-7-3-7-7a7 7 0 017-7 9 9 0 0117-3 6.5 6.5 0 014 12" />
+                        </svg>
+                      )}
+                      {procStage === 1 && (
+                        <svg viewBox="0 0 48 48" className="ai-ico">
+                          <path className="draw" d="M24 13v11M24 24l-11 5M24 24l11 5" />
+                          <circle className="node" cx="24" cy="13" r="3" />
+                          <circle className="node d2" cx="13" cy="29" r="3" />
+                          <circle className="node d3" cx="35" cy="29" r="3" />
+                          <circle className="node d4" cx="24" cy="24" r="4" />
+                        </svg>
+                      )}
+                      {procStage === 2 && (
+                        <svg viewBox="0 0 48 48" className="ai-ico">
+                          <path className="draw" d="M11 14h26v17H23l-7 6v-6h-5z" />
+                          <circle className="blink" cx="19" cy="23" r="1.7" />
+                          <circle className="blink d2" cx="24" cy="23" r="1.7" />
+                          <circle className="blink d3" cx="29" cy="23" r="1.7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ai-lab-text">
+                  <span className="ai-lab-badge">AI · שלב {procStage + 1} מתוך 3</span>
+                  <p className="ai-lab-caption">
+                    {['שליחה מאובטחת של הפנייה למערכת', 'אפיון ופענוח המקרה מול מקורות משפטיים', 'ניסוח תשובה ברורה על ידי העוזרת המשפטית'][procStage]}
+                  </p>
+                </div>
+
+                <div className="ai-seg">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className={`ai-seg-bar${procStage >= i ? ' on' : ''}${procStage === i ? ' cur' : ''}`}></span>
+                  ))}
+                </div>
+              </div>
             )}
 
             {aiResult && (
