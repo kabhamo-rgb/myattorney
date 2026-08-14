@@ -716,7 +716,7 @@ function App() {
   const [isCheckingQuestion, setIsCheckingQuestion] = useState(false)
   const [garnishInput, setGarnishInput] = useState<GarnishmentInput>({ originalDebt: '', totalCollected: '', extraCharges: '', incomeType: 'salary' })
   const [garnishResult, setGarnishResult] = useState<ReturnType<typeof buildGarnishmentAssessment> | null>(null)
-  const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, truth: false, signature: '', sending: false, done: false, error: '' })
+  const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, truth: false, signature: '', sending: false, done: false, error: '', refId: '' })
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const sigDrawing = useRef(false)
   const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[]; forms?: { t: string; u: string }[] } | null>(null)
@@ -1462,7 +1462,7 @@ function App() {
     }
     setRefund((r) => ({ ...r, sending: true, error: '' }))
     try {
-      await fetch(`${apiBaseUrl}/api/refund-requests`, {
+      const resp = await fetch(`${apiBaseUrl}/api/refund-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1488,7 +1488,9 @@ function App() {
             : {},
         }),
       })
-      setRefund((r) => ({ ...r, sending: false, done: true }))
+      let refId = ''
+      try { const d = await resp.json(); refId = (d && d.id) || '' } catch { /* ignore */ }
+      setRefund((r) => ({ ...r, sending: false, done: true, refId }))
     } catch {
       setRefund((r) => ({ ...r, sending: false, done: true }))
     }
@@ -2040,9 +2042,19 @@ function App() {
             {refund.done ? (
               <div className="auth-done">
                 <div className="auth-done-check">✓</div>
-                <h3>ההרשאה נשלחה בהצלחה</h3>
-                <p>קיבלנו את ההרשאה והחתימה שלך. נציג מהמשרד יחזור אליך בהקדם ויתחיל לטפל בעניין.</p>
-                <button type="button" className="primary-btn" onClick={() => setRefund((r) => ({ ...r, open: false }))}>סגירה</button>
+                <h3>תודה! ההרשאה נקלטה בהצלחה</h3>
+                <p>קיבלנו את ההרשאה והחתימה הדיגיטלית שלך, והן נשמרו במערכת.</p>
+                {refund.refId && <div className="auth-done-ref">מספר פנייה: <strong>{refund.refId}</strong></div>}
+                <div className="auth-done-next">
+                  <p className="auth-done-next-title">מה קורה עכשיו?</p>
+                  <ol>
+                    <li>נציג מהמשרד בוחן את הפרטים והמסמכים שמסרת.</li>
+                    <li>ניצור איתך קשר בטלפון או במייל לתיאום המשך.</li>
+                    <li>המשרד מכין ומגיש את הבקשה מול ההוצאה לפועל — אנחנו עושים הכל בשבילך.</li>
+                  </ol>
+                  <p className="auth-done-fee">הבדיקה חינם · שכר טרחה 25% + מע״מ ייגבה רק אם יתקבל החזר בפועל.</p>
+                </div>
+                <button type="button" className="primary-btn" onClick={() => setRefund((r) => ({ ...r, open: false }))}>מצוין, סגור</button>
               </div>
             ) : (
               <>

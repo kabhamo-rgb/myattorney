@@ -398,19 +398,51 @@ function Backoffice() {
         {tab === 'dashboard' && (
           <section>
             <h2>לוח בקרה — CRM</h2>
-            {overview && (
-              <>
-                <h3>משפך המרה</h3>
-                <div className="bo-stat-grid">
-                  <div className="bo-stat"><strong>{overview.leads?.total ?? 0}</strong><span>סה"כ פניות</span></div>
-                  <div className="bo-stat"><strong>{overview.aiAnalyses ?? 0}</strong><span>בדיקות AI</span></div>
-                  <div className="bo-stat highlight"><strong>{overview.refunds?.count ?? 0}</strong><span>בקשות החזר</span></div>
-                  <div className="bo-stat highlight"><strong>{'₪' + Number(overview.refunds?.estimatedTotal || 0).toLocaleString('he-IL')}</strong><span>סכום החזר פוטנציאלי</span></div>
-                  <div className="bo-stat"><strong>{overview.payments?.count ?? 0}</strong><span>תשלומים שנפתחו</span></div>
-                  <div className="bo-stat"><strong>{overview.conversionRate ?? 0}%</strong><span>שיעור המרה</span></div>
-                </div>
-              </>
-            )}
+            {overview && (() => {
+              const estTotal = Number(overview.refunds?.estimatedTotal || 0)
+              const revenuePotential = Math.round(estTotal * 0.25)
+              const signedCount = refundLeads.filter((l) => (l as any).signature).length
+              const authorizedCount = refundLeads.filter((l) => (l as any).powerOfAttorney).length
+              const total = overview.leads?.total ?? 0
+              const refundsCount = overview.refunds?.count ?? 0
+              const closedCount = (overview.leads?.booked ?? 0) + (overview.leads?.closed ?? 0)
+              const funnel = [
+                { label: 'פניות', value: total, color: '#1d4ed8' },
+                { label: 'בקשות החזר', value: refundsCount, color: '#0ea5e9' },
+                { label: 'הרשאות חתומות', value: signedCount, color: '#16a34a' },
+                { label: 'הוגשו / נסגרו', value: closedCount, color: '#7c3aed' },
+              ]
+              const maxV = Math.max(1, ...funnel.map((f) => f.value))
+              return (
+                <>
+                  <h3>מדדים עסקיים</h3>
+                  <div className="bo-stat-grid">
+                    <div className="bo-stat"><strong>{total}</strong><span>סה"כ פניות</span></div>
+                    <div className="bo-stat"><strong>{overview.aiAnalyses ?? 0}</strong><span>בדיקות AI</span></div>
+                    <div className="bo-stat highlight"><strong>{refundsCount}</strong><span>בקשות החזר</span></div>
+                    <div className="bo-stat"><strong>{signedCount}</strong><span>הרשאות חתומות</span></div>
+                    <div className="bo-stat highlight"><strong>{'₪' + estTotal.toLocaleString('he-IL')}</strong><span>סכום החזר פוטנציאלי</span></div>
+                    <div className="bo-stat revenue"><strong>{'₪' + revenuePotential.toLocaleString('he-IL')}</strong><span>שכ"ט פוטנציאלי (25%)</span></div>
+                    <div className="bo-stat"><strong>{overview.conversionRate ?? 0}%</strong><span>שיעור המרה</span></div>
+                    <div className="bo-stat"><strong>{authorizedCount}</strong><span>ייפויי כוח</span></div>
+                  </div>
+
+                  <h3>משפך המרה</h3>
+                  <div className="bo-funnel">
+                    {funnel.map((f) => (
+                      <div key={f.label} className="bo-funnel-row">
+                        <span className="bo-funnel-label">{f.label}</span>
+                        <div className="bo-funnel-track">
+                          <div className="bo-funnel-bar" style={{ width: `${Math.round((f.value / maxV) * 100)}%`, background: f.color }}>
+                            <span>{f.value}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            })()}
             <h3>סטטוס עבודה</h3>
             <div className="bo-stat-grid">
               <div className="bo-stat"><strong>{stats.newLeads}</strong><span>פניות חדשות</span></div>
