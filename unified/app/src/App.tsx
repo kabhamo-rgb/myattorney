@@ -721,6 +721,8 @@ function App() {
   const sigDrawing = useRef(false)
   const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[]; forms?: { t: string; u: string }[] } | null>(null)
   const [aiResult, setAiResult] = useState<{
+    bottomLine?: string
+    plainSummary?: string
     caseDecoding?: string
     legalAnalysis?: string
     steps?: string[]
@@ -2013,6 +2015,86 @@ function App() {
         </div>
       )}
 
+      {refund.open && (
+        <div className="consent-overlay" role="dialog" aria-modal="true" onClick={() => setRefund((r) => ({ ...r, open: false }))}>
+          <div className="consent-modal auth-modal" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="login-modal-close" aria-label="סגירה" onClick={() => setRefund((r) => ({ ...r, open: false }))}>✕</button>
+            {refund.done ? (
+              <div className="auth-done">
+                <div className="auth-done-check">✓</div>
+                <h3>ההרשאה נשלחה בהצלחה</h3>
+                <p>קיבלנו את ההרשאה והחתימה שלך. נציג מהמשרד יחזור אליך בהקדם ויתחיל לטפל בעניין.</p>
+                <button type="button" className="primary-btn" onClick={() => setRefund((r) => ({ ...r, open: false }))}>סגירה</button>
+              </div>
+            ) : (
+              <>
+                <p className="eyebrow">מתן הרשאה למשרד · אנחנו נעשה הכל בשבילך</p>
+                <h3>הרשאה לטיפול, ייפוי כוח והסכם שכר טרחה</h3>
+                <p className="refund-note">טופס אחד שכולל את כל מה שצריך כדי שהמשרד יתחיל לטפל: הסכם שכר טרחה מותנה הצלחה, ייפוי כוח, ומדיניות פרטיות — באישור וחתימה דיגיטלית. הבקשה נשלחת למשרד בלבד ואינה מוגשת לרשויות באופן אוטומטי.</p>
+                <form className="refund-form" onSubmit={handleRefundSubmit}>
+                  <div className="garnish-grid">
+                    <label>שם מלא
+                      <input value={refund.fullName} onChange={(e) => setRefund((r) => ({ ...r, fullName: e.target.value }))} />
+                    </label>
+                    <label>תעודת זהות
+                      <input inputMode="numeric" value={refund.idNumber} onChange={(e) => setRefund((r) => ({ ...r, idNumber: e.target.value }))} />
+                    </label>
+                    <label>טלפון
+                      <input inputMode="tel" value={refund.phone} onChange={(e) => setRefund((r) => ({ ...r, phone: e.target.value }))} />
+                    </label>
+                    <label>דוא"ל
+                      <input inputMode="email" value={refund.email} onChange={(e) => setRefund((r) => ({ ...r, email: e.target.value }))} />
+                    </label>
+                  </div>
+                  <div className="fee-agreement">
+                    <p className="fee-agreement-title">הסכם שכר טרחה מותנה הצלחה וייפוי כוח</p>
+                    <p className="fee-agreement-sub">משרד עורכי דין מוחמד מ. קבהא · מ.ר 67912 · בסמ״ה, רח' אלבוח'ארי 95</p>
+                    <ol className="fee-agreement-list">
+                      <li>הבדיקה וההערכה הראשונית ניתנות ללא עלות.</li>
+                      <li><strong>שכר טרחה מותנה הצלחה:</strong> שכר הטרחה יעמוד על <strong>25% בתוספת מע״מ כדין</strong>, מכל סכום שיושב, יוחזר או ייחסך ללקוח בפועל בעניין בלבד. לא הושב סכום — לא יחול שכר טרחה («ללא זכייה — אין תשלום»). שכר הטרחה יחול וייגבה עם קבלת הכספים בפועל.</li>
+                      <li>אגרות והוצאות חיצוניות, ככל שיהיו, יחולו על הלקוח ואינן כלולות בשכר הטרחה.</li>
+                      <li><strong>ייפוי כוח:</strong> הלקוח ממנה ומייפה בזאת את כוחו של עו״ד מוחמד מ׳ קבהא, מ.ר 67912, לפעול בשמו ובמקומו בעניין השבת כספים שנגבו ביתר — לרבות הגשת בקשות, כתבי טענות ומסמכים לרשות האכיפה והגבייה (ההוצאה לפועל), לבתי המשפט ולכל גורם מוסמך; עיון בתיקים; ניהול משא ומתן; וקבלת כספים בנאמנות עבור הלקוח — עד להשלמת הטיפול או ביטולו בכתב.</li>
+                      <li><strong>הצהרת נכונות פרטים ואחריות:</strong> הלקוח מצהיר כי כל הפרטים, הנתונים והמסמכים שמסר נכונים, מלאים ומדויקים, וכי ידוע לו שהמשרד מסתמך על הצהרתו. נמסרו על ידו פרטים שגויים, חלקיים, כוזבים או מטעים — תחול עליו האחריות המלאה והבלעדית לכל תוצאה, נזק, הוצאה או חבות הנובעים מכך, והמשרד יהיה פטור מכל אחריות בגינם.</li>
+                      <li>המידע והתוצאות בכלי האתר הם מידע כללי המבוסס על מאגרים ציבוריים רשמיים, אינם מהווים ייעוץ משפטי פרטני ואינם התחייבות לתוצאה. עיבוד המידע ייעשה לצורך הטיפול בלבד, בהתאם לחוק הגנת הפרטיות, התשמ״א-1981.</li>
+                      <li>סימון תיבות האישור, לצד מסירת שם הלקוח, מספר תעודת הזהות והמועד, מהווים הסכמה וייפוי כוח חתומים מרחוק לכל דבר ועניין.</li>
+                    </ol>
+                  </div>
+                  <label className="consent-line">
+                    <input type="checkbox" checked={refund.consent} onChange={(e) => setRefund((r) => ({ ...r, consent: e.target.checked }))} />
+                    <span>קראתי והבנתי, ואני מסכים/ה להסכם שכר הטרחה המותנה (25% + מע״מ מהסכום שיושב בפועל; ללא זכייה — אין תשלום), <strong>ומייפה בזאת את כוחו של עו״ד מוחמד מ׳ קבהא (מ.ר 67912)</strong> לטפל ולייצגני בעניין.</span>
+                  </label>
+                  <label className="consent-line">
+                    <input type="checkbox" checked={refund.truth} onChange={(e) => setRefund((r) => ({ ...r, truth: e.target.checked }))} />
+                    <span>אני מצהיר/ה כי כל הפרטים שמסרתי נכונים, מלאים ומדויקים, ומבין/ה כי במסירת פרטים שגויים או חלקיים תחול עליי האחריות המלאה והבלעדית לכל תוצאה הנובעת מכך.</span>
+                  </label>
+                  <div className="sig-block">
+                    <div className="sig-head">
+                      <p className="sig-label">חתימה אלקטרונית <span>— חתמו כאן בעכבר או באצבע</span></p>
+                      <button type="button" className="sig-clear" onClick={clearSignature}>נקה</button>
+                    </div>
+                    <canvas
+                      ref={sigCanvasRef}
+                      className="sig-canvas"
+                      width={600}
+                      height={170}
+                      onPointerDown={sigStart}
+                      onPointerMove={sigMove}
+                      onPointerUp={sigEnd}
+                      onPointerLeave={sigEnd}
+                    />
+                    <p className="sig-note">החתימה נשמרת עם חותמת זמן ומהווה חתימה אלקטרונית לאישור ההסכם וייפוי הכוח (חוק חתימה אלקטרונית, התשס״א-2001).</p>
+                  </div>
+                  {refund.error && <p className="refund-error">{refund.error}</p>}
+                  <button type="submit" className="primary-btn submit-btn" disabled={refund.sending}>
+                    {refund.sending ? 'שולח...' : '✍️ אישור, חתימה ומתן הרשאה'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark">M</div>
@@ -2213,39 +2295,66 @@ function App() {
             )}
 
             {aiResult && (
-              <div className="review-result ai-result" aria-live="polite">
-                <div className="report-header">
-                  <h3>ניתוח משפטי מפוענח</h3>
-                  {aiResult.riskLevel && <span className="risk-pill">{aiResult.riskLevel}</span>}
+              <div className="ai-answer" aria-live="polite">
+                <div className="ai-answer-head">
+                  <div className="ai-answer-avatar">
+                    <svg viewBox="0 0 48 48"><circle className="av-core" cx="24" cy="24" r="13" /><path className="av-face" d="M19 24h.02M29 24h.02" /><path className="av-smile" d="M19 29c1.6 1.6 8.4 1.6 10 0" /></svg>
+                  </div>
+                  <div className="ai-answer-title">
+                    <span className="ai-answer-badge">העוזרת המשפטית · AI</span>
+                    <h3>הנה מה שמצאנו עבורך</h3>
+                  </div>
+                  {aiResult.riskLevel && <span className={`risk-pill risk-${aiResult.riskLevel}`}>רמת סיכון: {aiResult.riskLevel}</span>}
                 </div>
-                {aiResult.caseDecoding && (
-                  <div className="result-block"><strong>פענוח המקרה</strong><p>{aiResult.caseDecoding}</p></div>
-                )}
-                {aiResult.legalAnalysis && (
-                  <div className="result-block"><strong>ניתוח משפטי</strong><p>{aiResult.legalAnalysis}</p></div>
-                )}
-                {Array.isArray(aiResult.steps) && aiResult.steps.length > 0 && (
-                  <div className="result-block"><strong>שלבי טיפול מוצעים</strong>
-                    <ul>{aiResult.steps.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+
+                {aiResult.bottomLine && (
+                  <div className="answer-bottomline">
+                    <span className="answer-tag">בשורה התחתונה</span>
+                    <p>{aiResult.bottomLine}</p>
                   </div>
                 )}
-                {Array.isArray(aiResult.remedies) && aiResult.remedies.length > 0 && (
-                  <div className="result-block"><strong>סעדים אפשריים</strong>
-                    <ul>{aiResult.remedies.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+
+                {aiResult.plainSummary && (
+                  <div className="answer-plain">
+                    <span className="answer-plain-tag">💬 בשפה פשוטה</span>
+                    <p>{aiResult.plainSummary}</p>
                   </div>
                 )}
-                {Array.isArray(aiResult.sources) && aiResult.sources.length > 0 && (
-                  <div className="result-block sources-block"><strong>מקורות</strong>
-                    <ul>{aiResult.sources.map((s, i) => (
-                      <li key={i}>{s.url ? <a href={s.url} target="_blank" rel="noreferrer noopener">{s.title || s.url}</a> : (s.title || '')}</li>
-                    ))}</ul>
-                  </div>
-                )}
+
+                <details className="answer-details" open>
+                  <summary>הסבר מקצועי מלא</summary>
+                  {aiResult.caseDecoding && (
+                    <div className="result-block"><strong>פענוח המקרה</strong><p>{aiResult.caseDecoding}</p></div>
+                  )}
+                  {aiResult.legalAnalysis && (
+                    <div className="result-block"><strong>ניתוח משפטי</strong><p>{aiResult.legalAnalysis}</p></div>
+                  )}
+                  {Array.isArray(aiResult.steps) && aiResult.steps.length > 0 && (
+                    <div className="result-block"><strong>שלבי טיפול מוצעים</strong>
+                      <ul>{aiResult.steps.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                    </div>
+                  )}
+                  {Array.isArray(aiResult.remedies) && aiResult.remedies.length > 0 && (
+                    <div className="result-block"><strong>סעדים אפשריים</strong>
+                      <ul>{aiResult.remedies.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                    </div>
+                  )}
+                  {Array.isArray(aiResult.sources) && aiResult.sources.length > 0 && (
+                    <div className="result-block sources-block"><strong>מקורות</strong>
+                      <ul>{aiResult.sources.map((s, i) => (
+                        <li key={i}>{s.url ? <a href={s.url} target="_blank" rel="noreferrer noopener">{s.title || s.url}</a> : (s.title || '')}</li>
+                      ))}</ul>
+                    </div>
+                  )}
+                </details>
+
+                <div className="handle-cta handle-cta-answer">
+                  <p className="handle-cta-lead">✨ <strong>אנחנו נעשה הכל בשבילך</strong></p>
+                  <p className="handle-cta-sub">בלחיצה אחת תיתן/י למשרד הרשאה לטפל — טופס אחד שכולל הסכם שכר טרחה, ייפוי כוח ומדיניות פרטיות, בחתימה דיגיטלית.</p>
+                  <button type="button" className="primary-btn" onClick={openRefund}>📝 מתן הרשאה למשרד לטפל</button>
+                </div>
+
                 <p className="tool-disclaimer">{aiResult.disclaimer || 'מידע כללי בלבד — אינו ייעוץ משפטי מחייב.'}</p>
-                <div className="result-cta">
-                  <a className="primary-btn" href="#pricing">🧾 הכנת טפסים ושליחה אונליין</a>
-                  <a className="secondary-btn" href="#contact">המשך לשירות מלא</a>
-                </div>
               </div>
             )}
 
@@ -2298,81 +2407,14 @@ function App() {
                   </div>
                 )}
 
-                {!refund.open && !refund.done && (
-                  <div className="result-cta">
-                    <button type="button" className="primary-btn refund-btn" onClick={openRefund}>💸 הגש בקשה להחזר</button>
+                {refund.done ? (
+                  <div className="refund-done">✅ הבקשה וההרשאה נשלחו בהצלחה. נציג/ת מהמשרד יחזרו אליך בהקדם לטיפול.</div>
+                ) : (
+                  <div className="handle-cta">
+                    <p className="handle-cta-lead">✨ <strong>אנחנו נעשה הכל בשבילך</strong> — בדיקה, הכנת הבקשה, והגשה מול ההוצאה לפועל.</p>
+                    <button type="button" className="primary-btn refund-btn" onClick={openRefund}>📝 מתן הרשאה למשרד לטפל</button>
                     <a className="secondary-btn" href="#pricing">הכנת טפסים ושליחה</a>
                   </div>
-                )}
-
-                {refund.open && !refund.done && (
-                  <form className="refund-form" onSubmit={handleRefundSubmit}>
-                    <h4>רישום ואישור לשליחת הבקשה</h4>
-                    <p className="refund-note">
-                      הבקשה נשלחת למשרד לצורך טיפול — ואינה מוגשת לרשויות באופן אוטומטי. לשליחה נדרש אישורך המפורש.
-                    </p>
-                    <div className="garnish-grid">
-                      <label>שם מלא
-                        <input value={refund.fullName} onChange={(e) => setRefund((r) => ({ ...r, fullName: e.target.value }))} />
-                      </label>
-                      <label>תעודת זהות
-                        <input inputMode="numeric" value={refund.idNumber} onChange={(e) => setRefund((r) => ({ ...r, idNumber: e.target.value }))} />
-                      </label>
-                      <label>טלפון
-                        <input inputMode="tel" value={refund.phone} onChange={(e) => setRefund((r) => ({ ...r, phone: e.target.value }))} />
-                      </label>
-                      <label>דוא"ל
-                        <input inputMode="email" value={refund.email} onChange={(e) => setRefund((r) => ({ ...r, email: e.target.value }))} />
-                      </label>
-                    </div>
-                    <div className="fee-agreement">
-                      <p className="fee-agreement-title">הסכם שכר טרחה מותנה הצלחה וייפוי כוח</p>
-                      <p className="fee-agreement-sub">משרד עורכי דין מוחמד מ. קבהא · מ.ר 67912 · בסמ״ה, רח' אלבוח'ארי 95</p>
-                      <ol className="fee-agreement-list">
-                        <li>הבדיקה וההערכה הראשונית ניתנות ללא עלות.</li>
-                        <li><strong>שכר טרחה מותנה הצלחה:</strong> שכר הטרחה יעמוד על <strong>25% בתוספת מע״מ כדין</strong>, מכל סכום שיושב, יוחזר או ייחסך ללקוח בפועל בעניין בלבד. לא הושב סכום — לא יחול שכר טרחה («ללא זכייה — אין תשלום»). שכר הטרחה יחול וייגבה עם קבלת הכספים בפועל.</li>
-                        <li>אגרות והוצאות חיצוניות, ככל שיהיו, יחולו על הלקוח ואינן כלולות בשכר הטרחה.</li>
-                        <li><strong>ייפוי כוח:</strong> הלקוח ממנה ומייפה בזאת את כוחו של עו״ד מוחמד מ׳ קבהא, מ.ר 67912, לפעול בשמו ובמקומו בעניין השבת כספים שנגבו ביתר — לרבות הגשת בקשות, כתבי טענות ומסמכים לרשות האכיפה והגבייה (ההוצאה לפועל), לבתי המשפט ולכל גורם מוסמך; עיון בתיקים; ניהול משא ומתן; וקבלת כספים בנאמנות עבור הלקוח — עד להשלמת הטיפול או ביטולו בכתב.</li>
-                        <li><strong>הצהרת נכונות פרטים ואחריות:</strong> הלקוח מצהיר כי כל הפרטים, הנתונים והמסמכים שמסר נכונים, מלאים ומדויקים, וכי ידוע לו שהמשרד מסתמך על הצהרתו. נמסרו על ידו פרטים שגויים, חלקיים, כוזבים או מטעים — תחול עליו האחריות המלאה והבלעדית לכל תוצאה, נזק, הוצאה או חבות הנובעים מכך, והמשרד יהיה פטור מכל אחריות בגינם.</li>
-                        <li>המידע והתוצאות בכלי האתר הם מידע כללי המבוסס על מאגרים ציבוריים רשמיים, אינם מהווים ייעוץ משפטי פרטני ואינם התחייבות לתוצאה. עיבוד המידע ייעשה לצורך הטיפול בלבד, בהתאם לחוק הגנת הפרטיות, התשמ״א-1981.</li>
-                        <li>סימון תיבות האישור, לצד מסירת שם הלקוח, מספר תעודת הזהות והמועד, מהווים הסכמה וייפוי כוח חתומים מרחוק לכל דבר ועניין.</li>
-                      </ol>
-                    </div>
-                    <label className="consent-line">
-                      <input type="checkbox" checked={refund.consent} onChange={(e) => setRefund((r) => ({ ...r, consent: e.target.checked }))} />
-                      <span>קראתי והבנתי, ואני מסכים/ה להסכם שכר הטרחה המותנה (25% + מע״מ מהסכום שיושב בפועל; ללא זכייה — אין תשלום), <strong>ומייפה בזאת את כוחו של עו״ד מוחמד מ׳ קבהא (מ.ר 67912)</strong> לטפל ולייצגני בעניין השבת הכספים.</span>
-                    </label>
-                    <label className="consent-line">
-                      <input type="checkbox" checked={refund.truth} onChange={(e) => setRefund((r) => ({ ...r, truth: e.target.checked }))} />
-                      <span>אני מצהיר/ה כי כל הפרטים שמסרתי נכונים, מלאים ומדויקים, ומבין/ה כי במסירת פרטים שגויים או חלקיים תחול עליי האחריות המלאה והבלעדית לכל תוצאה הנובעת מכך.</span>
-                    </label>
-
-                    <div className="sig-block">
-                      <div className="sig-head">
-                        <p className="sig-label">חתימה אלקטרונית <span>— חתמו כאן בעכבר או באצבע</span></p>
-                        <button type="button" className="sig-clear" onClick={clearSignature}>נקה</button>
-                      </div>
-                      <canvas
-                        ref={sigCanvasRef}
-                        className="sig-canvas"
-                        width={600}
-                        height={170}
-                        onPointerDown={sigStart}
-                        onPointerMove={sigMove}
-                        onPointerUp={sigEnd}
-                        onPointerLeave={sigEnd}
-                      />
-                      <p className="sig-note">החתימה נשמרת עם חותמת זמן ומהווה חתימה אלקטרונית לאישור ההסכם וייפוי הכוח (חוק חתימה אלקטרונית, התשס״א-2001).</p>
-                    </div>
-                    {refund.error && <p className="refund-error">{refund.error}</p>}
-                    <button type="submit" className="primary-btn submit-btn" disabled={refund.sending}>
-                      {refund.sending ? 'שולח...' : 'שליחת הבקשה למשרד'}
-                    </button>
-                  </form>
-                )}
-
-                {refund.done && (
-                  <div className="refund-done">✅ הבקשה נשלחה בהצלחה. נציג/ת מהמשרד יחזרו אליך בהקדם לבדיקת ההחזר.</div>
                 )}
               </div>
             )}
