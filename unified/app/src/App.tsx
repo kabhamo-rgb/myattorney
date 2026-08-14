@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const services = [
@@ -28,11 +28,12 @@ const services = [
   },
 ]
 
+// Honest, factual trust points about the SERVICE (no unverifiable metrics).
 const stats = [
-  { value: '15+', label: 'שנות ניסיון' },
-  { value: '1,200+', label: 'לקוחות מרוצים' },
-  { value: '94%', label: 'הצלחה ביישוב סכסוכים' },
-  { value: '24/7', label: 'ייעוץ דחוף' },
+  { value: 'חינם', label: 'בדיקה ראשונית וזכאות להחזר' },
+  { value: '25%', label: 'עמלה רק מהחזר שהתקבל בפועל' },
+  { value: 'עו״ד', label: 'הטיפול באחריות ובפיקוח עורך דין' },
+  { value: 'מאגרים', label: 'מבוסס מקורות ציבוריים רשמיים' },
 ]
 
 const steps = [
@@ -43,25 +44,11 @@ const steps = [
 ]
 
 const team = [
-  { name: 'עו"ד רועי כהן', role: 'מנהל המשרד', bio: 'מתמקד בדיני חברות, עסקים ומיזוגים.' },
-  { name: 'עו"ד ליאור אשר', role: 'סכסוכי עבודה', bio: 'מלווה עובדים ועסקים בייצוג מבוקר ותקיף.' },
-  { name: 'עו"ד נטע דביר', role: 'משפחה וירושה', bio: 'מייצגת לקוחות במצבים רגישים עם רגישות גבוהה.' },
+  { name: 'עו״ד מוחמד מ׳ קבהא', role: 'עורך הדין האחראי · מ.ר 67912', bio: 'אחראי מקצועית על השירות, בדיקת התיקים, הכנת הבקשות והייצוג מול רשות האכיפה והגבייה ובתי המשפט.' },
 ]
 
-const testimonials = [
-  {
-    quote:
-      'קיבלנו מענה מקצועי, מהיר וענייני. כל צעד היה שקוף ושמרנו על שליטה מלאה על ההליך.',
-    name: 'רותם ש.',
-    role: 'מנהל חברה',
-  },
-  {
-    quote:
-      'העמידה שלנו מול הצד השני הייתה חדה ומדויקת. הצוות ענה לכל שאלה בזמן אמת והביא תוצאות.',
-    name: 'שירה א.',
-    role: 'עובדת רפואית',
-  },
-]
+// Testimonials must be real, documented and published with consent — none shown until then.
+const testimonials: { quote: string; name: string; role: string }[] = []
 
 const faqs = [
   {
@@ -725,7 +712,9 @@ function App() {
   const [isCheckingQuestion, setIsCheckingQuestion] = useState(false)
   const [garnishInput, setGarnishInput] = useState<GarnishmentInput>({ originalDebt: '', totalCollected: '', extraCharges: '', incomeType: 'salary' })
   const [garnishResult, setGarnishResult] = useState<ReturnType<typeof buildGarnishmentAssessment> | null>(null)
-  const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, sending: false, done: false, error: '' })
+  const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, truth: false, signature: '', sending: false, done: false, error: '' })
+  const sigCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const sigDrawing = useRef(false)
   const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[]; forms?: { t: string; u: string }[] } | null>(null)
   const [aiResult, setAiResult] = useState<{
     caseDecoding?: string
@@ -1369,6 +1358,45 @@ function App() {
 
   const openRefund = () => setRefund((r) => ({ ...r, open: true, done: false, error: '' }))
 
+  // ---- Electronic signature pad ----
+  const sigPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const c = sigCanvasRef.current!
+    const r = c.getBoundingClientRect()
+    return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) }
+  }
+  const sigStart = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const c = sigCanvasRef.current
+    if (!c) return
+    sigDrawing.current = true
+    const ctx = c.getContext('2d')!
+    const p = sigPos(e)
+    ctx.beginPath()
+    ctx.moveTo(p.x, p.y)
+    c.setPointerCapture?.(e.pointerId)
+  }
+  const sigMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!sigDrawing.current) return
+    const c = sigCanvasRef.current!
+    const ctx = c.getContext('2d')!
+    const p = sigPos(e)
+    ctx.lineWidth = 2.2
+    ctx.lineCap = 'round'
+    ctx.strokeStyle = '#0f172a'
+    ctx.lineTo(p.x, p.y)
+    ctx.stroke()
+  }
+  const sigEnd = () => {
+    if (!sigDrawing.current) return
+    sigDrawing.current = false
+    const c = sigCanvasRef.current
+    if (c) setRefund((r) => ({ ...r, signature: c.toDataURL('image/png') }))
+  }
+  const clearSignature = () => {
+    const c = sigCanvasRef.current
+    if (c) c.getContext('2d')!.clearRect(0, 0, c.width, c.height)
+    setRefund((r) => ({ ...r, signature: '' }))
+  }
+
   const handleRefundSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!refund.fullName.trim() || !(refund.phone.trim() || refund.email.trim())) {
@@ -1376,7 +1404,15 @@ function App() {
       return
     }
     if (!refund.consent) {
-      setRefund((r) => ({ ...r, error: 'יש לאשר את שליחת הבקשה בשמך.' }))
+      setRefund((r) => ({ ...r, error: 'יש לאשר את תנאי ההתקשרות ושכר הטרחה מותנה ההצלחה.' }))
+      return
+    }
+    if (!refund.truth) {
+      setRefund((r) => ({ ...r, error: 'יש לאשר את הצהרת נכונות הפרטים.' }))
+      return
+    }
+    if (!refund.signature) {
+      setRefund((r) => ({ ...r, error: 'נדרשת חתימה אלקטרונית בתחתית הטופס.' }))
       return
     }
     setRefund((r) => ({ ...r, sending: true, error: '' }))
@@ -1390,6 +1426,11 @@ function App() {
           phone: refund.phone,
           email: refund.email,
           consent: refund.consent,
+          truthDeclared: refund.truth,
+          powerOfAttorney: refund.consent,
+          attorney: 'עו״ד מוחמד מ׳ קבהא, מ.ר 67912',
+          feeAgreement: '25%+VAT success-fee, no win no fee',
+          signature: refund.signature,
           details: garnishResult
             ? {
                 summary: garnishResult.summary,
@@ -1989,12 +2030,10 @@ function App() {
       <main>
         <section id="legal-tool" className="hero-tool section">
           <div className="hero-tool-intro">
-            <p className="eyebrow">בדיקה משפטית מיידית • ללא התחייבות</p>
-            <h1>העלה מסמך או שאל שאלה — וקבל בדיקה משפטית ראשונית תוך שניות.</h1>
+            <p className="eyebrow">מיון ראשוני בפיקוח משרד עורכי דין • אינו ייעוץ משפטי</p>
+            <h1>בדיקת עיקול וגביית־יתר — מיון ראשוני מהיר, בפיקוח עורך דין.</h1>
             <p className="hero-text">
-              המערכת בודקת את המסמך או השאלה, מזהה את סוג העניין ואת נקודות הסיכון, ומחזירה
-              דוח ראשוני עם צעדים מומלצים. מכאן ניתן להמשיך לשירות מלא של המשרד או להזמנת
-              הכנת טפסים ושליחתם אונליין — בעלות לפי סוג התיק.
+              המערכת מבצעת <strong>מיון טכנולוגי ראשוני</strong> בלבד, המבוסס על מאגרים ציבוריים רשמיים, ומסייעת לזהות אם ייתכן שנגבו ממך כספים ביתר. המערכת <strong>אינה קובעת זכאות, אינה מהווה ייעוץ משפטי ואינה מבטיחה תוצאה</strong> — תשובה מותאמת נבדקת על ידי עו״ד מוחמד מ׳ קבהא (מ.ר 67912) לפני כל פעולה.
             </p>
             <div className="hero-chips">
               <button type="button" className="hero-chip hero-chip-strong" onClick={startLiensCheck}>
@@ -2208,10 +2247,45 @@ function App() {
                         <input inputMode="email" value={refund.email} onChange={(e) => setRefund((r) => ({ ...r, email: e.target.value }))} />
                       </label>
                     </div>
+                    <div className="fee-agreement">
+                      <p className="fee-agreement-title">הסכם שכר טרחה מותנה הצלחה וייפוי כוח</p>
+                      <p className="fee-agreement-sub">משרד עורכי דין מוחמד מ. קבהא · מ.ר 67912 · בסמ״ה, רח' אלבוח'ארי 95</p>
+                      <ol className="fee-agreement-list">
+                        <li>הבדיקה וההערכה הראשונית ניתנות ללא עלות.</li>
+                        <li><strong>שכר טרחה מותנה הצלחה:</strong> שכר הטרחה יעמוד על <strong>25% בתוספת מע״מ כדין</strong>, מכל סכום שיושב, יוחזר או ייחסך ללקוח בפועל בעניין בלבד. לא הושב סכום — לא יחול שכר טרחה («ללא זכייה — אין תשלום»). שכר הטרחה יחול וייגבה עם קבלת הכספים בפועל.</li>
+                        <li>אגרות והוצאות חיצוניות, ככל שיהיו, יחולו על הלקוח ואינן כלולות בשכר הטרחה.</li>
+                        <li><strong>ייפוי כוח:</strong> הלקוח ממנה ומייפה בזאת את כוחו של עו״ד מוחמד מ׳ קבהא, מ.ר 67912, לפעול בשמו ובמקומו בעניין השבת כספים שנגבו ביתר — לרבות הגשת בקשות, כתבי טענות ומסמכים לרשות האכיפה והגבייה (ההוצאה לפועל), לבתי המשפט ולכל גורם מוסמך; עיון בתיקים; ניהול משא ומתן; וקבלת כספים בנאמנות עבור הלקוח — עד להשלמת הטיפול או ביטולו בכתב.</li>
+                        <li><strong>הצהרת נכונות פרטים ואחריות:</strong> הלקוח מצהיר כי כל הפרטים, הנתונים והמסמכים שמסר נכונים, מלאים ומדויקים, וכי ידוע לו שהמשרד מסתמך על הצהרתו. נמסרו על ידו פרטים שגויים, חלקיים, כוזבים או מטעים — תחול עליו האחריות המלאה והבלעדית לכל תוצאה, נזק, הוצאה או חבות הנובעים מכך, והמשרד יהיה פטור מכל אחריות בגינם.</li>
+                        <li>המידע והתוצאות בכלי האתר הם מידע כללי המבוסס על מאגרים ציבוריים רשמיים, אינם מהווים ייעוץ משפטי פרטני ואינם התחייבות לתוצאה. עיבוד המידע ייעשה לצורך הטיפול בלבד, בהתאם לחוק הגנת הפרטיות, התשמ״א-1981.</li>
+                        <li>סימון תיבות האישור, לצד מסירת שם הלקוח, מספר תעודת הזהות והמועד, מהווים הסכמה וייפוי כוח חתומים מרחוק לכל דבר ועניין.</li>
+                      </ol>
+                    </div>
                     <label className="consent-line">
                       <input type="checkbox" checked={refund.consent} onChange={(e) => setRefund((r) => ({ ...r, consent: e.target.checked }))} />
-                      <span>אני מאשר/ת למשרד להכין ולהגיש בקשה להחזר בשמי, ולפנות אליי בעניין. הבנתי שזו בדיקה כללית ולא ייעוץ מחייב.</span>
+                      <span>קראתי והבנתי, ואני מסכים/ה להסכם שכר הטרחה המותנה (25% + מע״מ מהסכום שיושב בפועל; ללא זכייה — אין תשלום), <strong>ומייפה בזאת את כוחו של עו״ד מוחמד מ׳ קבהא (מ.ר 67912)</strong> לטפל ולייצגני בעניין השבת הכספים.</span>
                     </label>
+                    <label className="consent-line">
+                      <input type="checkbox" checked={refund.truth} onChange={(e) => setRefund((r) => ({ ...r, truth: e.target.checked }))} />
+                      <span>אני מצהיר/ה כי כל הפרטים שמסרתי נכונים, מלאים ומדויקים, ומבין/ה כי במסירת פרטים שגויים או חלקיים תחול עליי האחריות המלאה והבלעדית לכל תוצאה הנובעת מכך.</span>
+                    </label>
+
+                    <div className="sig-block">
+                      <div className="sig-head">
+                        <p className="sig-label">חתימה אלקטרונית <span>— חתמו כאן בעכבר או באצבע</span></p>
+                        <button type="button" className="sig-clear" onClick={clearSignature}>נקה</button>
+                      </div>
+                      <canvas
+                        ref={sigCanvasRef}
+                        className="sig-canvas"
+                        width={600}
+                        height={170}
+                        onPointerDown={sigStart}
+                        onPointerMove={sigMove}
+                        onPointerUp={sigEnd}
+                        onPointerLeave={sigEnd}
+                      />
+                      <p className="sig-note">החתימה נשמרת עם חותמת זמן ומהווה חתימה אלקטרונית לאישור ההסכם וייפוי הכוח (חוק חתימה אלקטרונית, התשס״א-2001).</p>
+                    </div>
                     {refund.error && <p className="refund-error">{refund.error}</p>}
                     <button type="submit" className="primary-btn submit-btn" disabled={refund.sending}>
                       {refund.sending ? 'שולח...' : 'שליחת הבקשה למשרד'}
@@ -2377,7 +2451,7 @@ function App() {
         <section id="process" className="section process-section">
           <div className="section-header centered">
             <p className="eyebrow">איך עובדים איתנו</p>
-            <h2>הליך פשוט, ברור וממוקד תוצאות</h2>
+            <h2>הליך פשוט, ברור ומקצועי</h2>
           </div>
 
           <div className="process-grid">
@@ -2406,6 +2480,7 @@ function App() {
           </div>
         </section>
 
+        {testimonials.length > 0 && (
         <section id="reviews" className="section testimonials-section">
           <div className="section-header">
             <p className="eyebrow">לקוחות מספרים</p>
@@ -2424,6 +2499,7 @@ function App() {
             ))}
           </div>
         </section>
+        )}
 
         <section id="contact" className="section contact-section">
           <div className="contact-copy">
@@ -2436,6 +2512,7 @@ function App() {
             <ul className="contact-list">
               <li>מייל: info@my-attorney.net</li>
               <li>טלפון: 052-661-1866</li>
+              <li>כתובת: בסמ״ה, רח' אלבוח'ארי 95, מיקוד 3002300</li>
               <li>שעות: ימים א'-ה', 09:00-18:00</li>
             </ul>
           </div>
@@ -2495,7 +2572,7 @@ function App() {
           </div>
           <div className="how-grid">
             <div className="how-step"><span className="how-num">1</span><strong>מעלים מסמך או שואלים</strong><p>מסמך שקיבלת (עיקול, דרישה, חוזה) או שאלה חופשית.</p></div>
-            <div className="how-step"><span className="how-num">2</span><strong>מקבלים בדיקה מיידית</strong><p>זיהוי סוג העניין, נקודות סיכון וצעדים מומלצים — תוך שניות.</p></div>
+            <div className="how-step"><span className="how-num">2</span><strong>מקבלים מיון ראשוני</strong><p>זיהוי ראשוני של סוג העניין ונקודות לבדיקה. אינו ייעוץ משפטי — נבדק על ידי עורך דין לפני כל פעולה.</p></div>
             <div className="how-step"><span className="how-num">3</span><strong>ממשיכים לפעולה</strong><p>הכנת טפסים ושליחה אונליין, או שירות משפטי מלא של המשרד.</p></div>
           </div>
         </section>
@@ -3053,6 +3130,42 @@ function App() {
             )}
           </form>
         </section>
+
+        <section id="privacy" className="section legal-section">
+          <div className="section-header"><p className="eyebrow">הגנת הפרטיות</p><h2>מדיניות פרטיות והודעת איסוף מידע</h2></div>
+          <div className="legal-body">
+            <p><strong>בעל השליטה במידע:</strong> משרד עורכי דין מוחמד מ. קבהא (מ.ר 67912) («המשרד»). כתובת: בסמ״ה, רח' אלבוח'ארי 95, מיקוד 3002300. פרטי התקשרות: info@my-attorney.net · 052-661-1866.</p>
+            <p><strong>מטרות השימוש:</strong> המידע נאסף לצורך ביצוע מיון ובדיקה ראשונית, מתן שירות משפטי וטיפול בעניין, יצירת קשר וניהול ההתקשרות בלבד, בהתאם לסעיף 11 לחוק הגנת הפרטיות, התשמ״א-1981 ולתיקון 13 לחוק.</p>
+            <p><strong>סוגי מידע:</strong> פרטי זיהוי והתקשרות, מסמכים ונתונים שתמסרו לצורך הבדיקה, ומידע טכני בסיסי. מסירת המידע תלויה בהסכמתכם; אינכם חייבים למסור מידע, אך ללא מידע מסוים לא נוכל לספק את השירות.</p>
+            <p><strong>העברה לצדדים שלישיים:</strong> לצורך הפעלת השירות אנו נעזרים בספקי עיבוד (אחסון בענן, מנוע ניתוח/‏AI, מערכת ניהול לקוחות וסליקת תשלומים). ייתכן עיבוד או אחסון מחוץ לישראל, בכפוף להוראות הדין. איננו מוכרים מידע ואיננו מעבירים אותו לצד שלישי שלא לצורך השירות, למעט כנדרש על פי דין.</p>
+            <p><strong>שמירה ומחיקה:</strong> מידע שלא הבשיל לתיק פעיל יימחק לאחר זמן סביר. מידע בתיקי לקוח יישמר לפי חובות הדין וכללי לשכת עורכי הדין.</p>
+            <p><strong>זכות עיון ותיקון:</strong> לפי סעיפים 13–14 לחוק, אתם רשאים לעיין במידע שלכם ולבקש את תיקונו או מחיקתו, בפנייה ל-info@my-attorney.net.</p>
+            <p><strong>אבטחת מידע:</strong> אנו נוקטים אמצעים לאבטחת המידע (הצפנה בתעבורה, הרשאות והגבלת גישה). <strong>אנא הימנעו מהעלאת מסמכים או פרטים של צד שלישי שאינם נחוצים לבדיקה.</strong></p>
+            <p><strong>הסכמה:</strong> השימוש בכלים והעלאת מסמכים מהווים הסכמה למדיניות זו.</p>
+          </div>
+        </section>
+
+        <section id="terms" className="section legal-section">
+          <div className="section-header"><p className="eyebrow">תנאי שימוש</p><h2>תקנון ותנאי שימוש</h2></div>
+          <div className="legal-body">
+            <p><strong>מהות השירות:</strong> האתר מפעיל מערכת קליטה ומיון ראשוני בפיקוח המשרד. המידע והכלים אינם ייעוץ משפטי ואינם התחייבות לתוצאה. יחסי עורך דין–לקוח נוצרים רק בהסכם התקשרות ושכר טרחה חתום ולאחר בדיקת ניגוד עניינים.</p>
+            <p><strong>תמחור:</strong> בדיקת/החזר עיקול — ללא עלות; שכר טרחה מותנה הצלחה בשיעור 25% בתוספת מע״מ כדין, מכל סכום שיושב בפועל בלבד («ללא זכייה — אין תשלום»). הכנת טפסים ושליחתם — ₪190 לטופס בודד ו-₪490 לסט הוצאה לפועל (המחירים כוללים מע״מ, אלא אם צוין אחרת). אגרות והוצאות חיצוניות אינן כלולות.</p>
+            <p><strong>«טופס מוכן» ו«שליחה אונליין»:</strong> הכנת טופס משפטי מותאם לפרטים שנמסרו והעברתו לגורם/יעד הרלוונטי. אין בכך ערובה לקבלת הבקשה על ידי הרשות; דחיית בקשה אינה מזכה בהחזר אוטומטי, אלא לפי מדיניות הביטול שלהלן.</p>
+            <p><strong>ביטול עסקה (מכר מרחוק):</strong> בהתאם לחוק הגנת הצרכן, התשמ״א-1981 ותקנותיו, ניתן לבטל עסקה בכפוף לשלב הביצוע. שירות שבוצע או החל להתבצע לפי בקשת הלקוח עשוי שלא להיות ניתן לביטול/החזר בגין החלק שבוצע. לביטול: info@my-attorney.net.</p>
+            <p><strong>שכר טרחה:</strong> יוסדר בהסכם חתום טרם תחילת הטיפול, בהפרדה בין שכר טרחה, מע״מ, אגרות והוצאות, ובכפוף לזכות לבחינת סבירות לפי חוק לשכת עורכי הדין. כספי לקוחות ינוהלו בנאמנות כדין.</p>
+            <p><strong>דין וסמכות שיפוט:</strong> על השימוש יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית לבתי המשפט המוסמכים בישראל.</p>
+            <p>המשרד: משרד עורכי דין מוחמד מ. קבהא, בסמ״ה, רח' אלבוח'ארי 95, מיקוד 3002300 · עוסק מורשה — עו״ד מוחמד קבהא, מ.ר 67912.</p>
+          </div>
+        </section>
+
+        <section id="accessibility" className="section legal-section">
+          <div className="section-header"><p className="eyebrow">נגישות</p><h2>הצהרת נגישות</h2></div>
+          <div className="legal-body">
+            <p>המשרד רואה חשיבות רבה בהנגשת שירותיו לכלל הציבור, לרבות אנשים עם מוגבלות, ופועל למען עמידה בהוראות חוק שוויון זכויות לאנשים עם מוגבלות, התשנ״ח-1998, ותקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות לשירות), התשע״ג-2013.</p>
+            <p>האתר נבנה בשאיפה לעמידה בהמלצות התקן הישראלי ת״י 5568 (המבוסס על WCAG 2.0) ברמה AA: מבנה סמנטי, ניגודיות צבעים, ניווט במקלדת ותמיכה בקוראי מסך.</p>
+            <p>מצאתם קושי בנגישות או ליקוי? נשמח לתקן. רכז הנגישות: עו״ד מוחמד קבהא — info@my-attorney.net · 052-661-1866 · בסמ״ה, רח' אלבוח'ארי 95, מיקוד 3002300.</p>
+          </div>
+        </section>
       </main>
 
       <footer className="footer">
@@ -3062,8 +3175,19 @@ function App() {
         </div>
 
         <div className="footer-actions">
-          <a className="primary-btn" href="tel:+972540000000">התקשר עכשיו</a>
+          <a className="primary-btn" href="tel:+972526611866">התקשר עכשיו</a>
           <a className="secondary-btn" href="mailto:info@my-attorney.net">info@my-attorney.net</a>
+        </div>
+
+        <div className="footer-identity">
+          <p><strong>משרד עורכי דין מוחמד מ. קבהא</strong> · עורך הדין האחראי: עו״ד מוחמד קבהא, מ.ר 67912</p>
+          <p>כתובת: בסמ״ה, רח' אלבוח'ארי 95, מיקוד 3002300 · טלפון: 052-661-1866 · דוא״ל: info@my-attorney.net</p>
+          <p className="footer-mini">האתר מופעל כמערכת קליטה ומיון בפיקוח משרד עורכי דין. המידע והכלים אינם מהווים ייעוץ משפטי ואינם תחליף לייעוץ פרטני. אין בשימוש באתר כדי ליצור יחסי עורך דין–לקוח, אשר ייווצרו רק בהסכם התקשרות חתום.</p>
+          <nav className="footer-legal">
+            <a href="#privacy">מדיניות פרטיות</a>
+            <a href="#terms">תקנון ותנאי שימוש</a>
+            <a href="#accessibility">הצהרת נגישות</a>
+          </nav>
         </div>
       </footer>
     </div>

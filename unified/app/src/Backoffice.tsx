@@ -23,6 +23,11 @@ type Lead = {
   idNumber?: string
   type?: string
   refund?: { estimatedOverpaid?: number }
+  signature?: string
+  signedAt?: string
+  powerOfAttorney?: boolean
+  truthDeclared?: boolean
+  attorney?: string
 }
 
 type Client = {
@@ -471,7 +476,7 @@ function Backoffice() {
             </div>
             <table className="bo-table">
               <thead>
-                <tr><th>שם</th><th>ת"ז</th><th>טלפון</th><th>הערכת החזר</th><th>סטטוס</th><th>מעקב</th><th>הערה</th></tr>
+                <tr><th>שם</th><th>ת"ז</th><th>טלפון</th><th>הערכת החזר</th><th>אישור + חתימה</th><th>סטטוס</th><th>מעקב</th><th>הערה</th></tr>
               </thead>
               <tbody>
                 {refundLeads.map((l) => (
@@ -480,6 +485,18 @@ function Backoffice() {
                     <td>{(l as any).idNumber || '-'}</td>
                     <td>{l.phone || l.email}</td>
                     <td><strong>{(l as any).refund?.estimatedOverpaid ? '₪' + Number((l as any).refund.estimatedOverpaid).toLocaleString('he-IL') : '-'}</strong></td>
+                    <td>
+                      <div className="bo-consents">
+                        {l.powerOfAttorney && <span className="bo-ok-tag">ייפוי כוח ✓</span>}
+                        {l.truthDeclared && <span className="bo-ok-tag">הצהרה ✓</span>}
+                        {l.signature ? (
+                          <a href={l.signature} target="_blank" rel="noopener noreferrer" download={`signature-${l.name}.png`} title="פתח/הורד חתימה">
+                            <img src={l.signature} alt="חתימה" className="bo-sig-thumb" />
+                          </a>
+                        ) : <span className="bo-no-tag">אין חתימה</span>}
+                        {l.signedAt && <span className="bo-sig-time">{fmtDate(l.signedAt)}</span>}
+                      </div>
+                    </td>
                     <td>
                       <select value={l.status} onChange={(e) => updateLead(l.id, { status: e.target.value })}>
                         <option value="new">חדש</option>
@@ -492,7 +509,7 @@ function Backoffice() {
                     <td><input className="bo-note" defaultValue={(l as any).note || ''} onBlur={(e) => updateLead(l.id, { note: e.target.value })} placeholder="הערה / סיכום שיחה" /></td>
                   </tr>
                 ))}
-                {refundLeads.length === 0 && <tr><td colSpan={7} className="bo-empty">אין בקשות החזר עדיין</td></tr>}
+                {refundLeads.length === 0 && <tr><td colSpan={8} className="bo-empty">אין בקשות החזר עדיין</td></tr>}
               </tbody>
             </table>
           </section>

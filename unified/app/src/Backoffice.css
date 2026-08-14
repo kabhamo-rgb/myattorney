@@ -187,3 +187,10 @@
 .bo-stat.highlight strong { color: #16a34a; }
 .bo-note { width: 200px; border: 1px solid var(--bo-line); border-radius: 8px; padding: 8px 10px; font-family: inherit; font-size: 14px; }
 .bo-table input[type="date"] { border: 1px solid var(--bo-line); border-radius: 8px; padding: 7px 9px; font-family: inherit; font-size: 13px; }
+
+/* Refund consents + e-signature */
+.bo-consents { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.bo-ok-tag { background: #dcfce7; color: #166534; border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 700; }
+.bo-no-tag { color: #94a3b8; font-size: 12px; }
+.bo-sig-thumb { width: 110px; height: 44px; object-fit: contain; border: 1px solid var(--bo-line); border-radius: 6px; background: #fff; cursor: pointer; }
+.bo-sig-time { color: #94a3b8; font-size: 11px; }
