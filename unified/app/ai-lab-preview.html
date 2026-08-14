@@ -1,0 +1,82 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>תצוגה מקדימה — חוויית AI</title><style>body{font-family:Assistant,system-ui,sans-serif;background:#0a1226;margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}.wrap{max-width:520px;width:100%}h2{text-align:center;color:#dbeafe;font-weight:700}/* ================= Modern AI processing lab ================= */
+.ai-lab {
+  position: relative; margin: 16px 0; padding: 26px 20px 20px; border-radius: 20px; overflow: hidden;
+  background: radial-gradient(120% 120% at 50% 0%, #12224a 0%, #0b1530 60%, #0a1226 100%);
+  border: 1px solid rgba(99,102,241,0.25); text-align: center; color: #e5edff;
+  box-shadow: 0 20px 50px rgba(8,15,40,0.35), inset 0 0 60px rgba(56,110,255,0.08);
+}
+.ai-lab-grid {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.4;
+  background-image: linear-gradient(rgba(120,160,255,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(120,160,255,0.09) 1px, transparent 1px);
+  background-size: 26px 26px; mask-image: radial-gradient(80% 70% at 50% 30%, #000 40%, transparent 100%);
+}
+
+.ai-orb-stage { position: relative; height: 150px; display: grid; place-items: center; }
+
+/* Core orb */
+.ai-orb { position: relative; width: 108px; height: 108px; display: grid; place-items: center; }
+.ai-orb-halo {
+  position: absolute; inset: -22px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,130,255,0.55) 0%, rgba(56,130,255,0.12) 45%, transparent 70%);
+  filter: blur(6px); animation: halo-breathe 2.4s ease-in-out infinite;
+}
+@keyframes halo-breathe { 0%,100% { transform: scale(0.92); opacity: .7; } 50% { transform: scale(1.08); opacity: 1; } }
+.ai-orb::after {
+  content: ''; position: absolute; width: 92px; height: 92px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7cc0ff 0%, #2f6bff 40%, #1b2f8a 78%, #0f1e5c 100%);
+  box-shadow: inset 0 0 24px rgba(255,255,255,0.35), 0 0 30px rgba(47,107,255,0.5);
+}
+.ai-orb-ring {
+  position: absolute; width: 108px; height: 108px; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 60%, #7dd3fc 78%, #a78bfa 90%, transparent 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: ring-spin 2.6s linear infinite;
+}
+.ai-orb-ring.ring-2 { width: 128px; height: 128px; opacity: .5; animation-duration: 4.2s; animation-direction: reverse;
+  background: conic-gradient(from 90deg, transparent 0 70%, #38bdf8 85%, transparent 100%); }
+@keyframes ring-spin { to { transform: rotate(360deg); } }
+
+.ai-orb-face { position: relative; z-index: 2; width: 56px; height: 56px; display: grid; place-items: center; }
+.ai-ico { width: 52px; height: 52px; }
+.ai-ico path, .ai-ico circle { fill: none; stroke: #eaf3ff; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(160,200,255,0.7)); }
+.ai-ico .draw { stroke-dasharray: 120; stroke-dashoffset: 120; animation: draw 1.1s ease forwards; }
+.ai-ico .draw.d2 { animation-delay: .25s; }
+.ai-ico .draw.d3 { animation-delay: .5s; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.ai-ico .node { fill: #eaf3ff; stroke: none; opacity: 0; animation: node-pop .4s ease forwards; }
+.ai-ico .node.d2 { animation-delay: .3s; } .ai-ico .node.d3 { animation-delay: .5s; } .ai-ico .node.d4 { animation-delay: .1s; }
+@keyframes node-pop { from { opacity: 0; transform: scale(0); transform-box: fill-box; transform-origin: center; } to { opacity: 1; transform: scale(1); } }
+.ai-ico .blink { fill: #eaf3ff; stroke: none; animation: blink 1s infinite; }
+.ai-ico .blink.d2 { animation-delay: .2s; } .ai-ico .blink.d3 { animation-delay: .4s; }
+@keyframes blink { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+
+/* Floating particles */
+.ai-particle { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #7dd3fc; box-shadow: 0 0 8px #7dd3fc; opacity: 0; }
+.ai-particle.p1 { left: 26%; animation: rise 3.2s ease-in infinite; }
+.ai-particle.p2 { left: 44%; animation: rise 2.6s ease-in .6s infinite; }
+.ai-particle.p3 { left: 60%; animation: rise 3.6s ease-in .3s infinite; background: #a78bfa; box-shadow: 0 0 8px #a78bfa; }
+.ai-particle.p4 { left: 72%; animation: rise 2.9s ease-in .9s infinite; }
+@keyframes rise { 0% { bottom: 20px; opacity: 0; transform: scale(.6); } 20% { opacity: 1; } 100% { bottom: 130px; opacity: 0; transform: scale(1.1); } }
+
+.ai-lab-text { position: relative; z-index: 2; margin-top: 4px; }
+.ai-lab-badge {
+  display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; color: #bfdbff;
+  background: rgba(99,140,255,0.16); border: 1px solid rgba(125,211,252,0.3); padding: 4px 12px; border-radius: 999px; margin-bottom: 8px;
+}
+.ai-lab-caption { margin: 0; font-size: 15.5px; font-weight: 600; color: #eaf1ff; min-height: 22px; animation: cap-in .4s ease; }
+@keyframes cap-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.ai-seg { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.ai-seg-bar { width: 54px; height: 5px; border-radius: 999px; background: rgba(148,163,220,0.25); overflow: hidden; position: relative; }
+.ai-seg-bar.on { background: linear-gradient(90deg, #38bdf8, #7c3aed); }
+.ai-seg-bar.cur::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent); animation: shimmer 1.3s linear infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-orb-halo, .ai-orb-ring, .ai-particle, .ai-ico .draw, .ai-ico .node, .ai-ico .blink, .ai-seg-bar.cur::after { animation: none !important; }
+  .ai-ico .draw { stroke-dashoffset: 0; } .ai-ico .node { opacity: 1; transform: none; }
+}
+</style></head><body><div class="wrap"><h2>חוויית ה‑AI — 3 שלבים מודרניים</h2><div id="s"></div></div><script>var scenes=["<svg viewBox=\"0 0 48 48\" class=\"ai-ico\"><path class=\"draw\" d=\"M24 33V15\"/><path class=\"draw d2\" d=\"M17 22l7-7 7 7\"/><path class=\"draw d3\" d=\"M13 33c-4 0-7-3-7-7a7 7 0 017-7 9 9 0 0117-3 6.5 6.5 0 014 12\"/></svg>", "<svg viewBox=\"0 0 48 48\" class=\"ai-ico\"><path class=\"draw\" d=\"M24 13v11M24 24l-11 5M24 24l11 5\"/><circle class=\"node\" cx=\"24\" cy=\"13\" r=\"3\"/><circle class=\"node d2\" cx=\"13\" cy=\"29\" r=\"3\"/><circle class=\"node d3\" cx=\"35\" cy=\"29\" r=\"3\"/><circle class=\"node d4\" cx=\"24\" cy=\"24\" r=\"4\"/></svg>", "<svg viewBox=\"0 0 48 48\" class=\"ai-ico\"><path class=\"draw\" d=\"M11 14h26v17H23l-7 6v-6h-5z\"/><circle class=\"blink\" cx=\"19\" cy=\"23\" r=\"1.7\"/><circle class=\"blink d2\" cx=\"24\" cy=\"23\" r=\"1.7\"/><circle class=\"blink d3\" cx=\"29\" cy=\"23\" r=\"1.7\"/></svg>"];var caps=["שליחה מאובטחת של הפנייה למערכת", "אפיון ופענוח המקרה מול מקורות משפטיים", "ניסוח תשובה ברורה על ידי העוזרת המשפטית"];var st=0;function r(){var seg=[0,1,2].map(function(i){return '<span class="ai-seg-bar'+(st>=i?' on':'')+(st===i?' cur':'')+'"></span>';}).join('');
+document.getElementById('s').innerHTML='<div class="ai-lab"><div class="ai-lab-grid"></div><div class="ai-orb-stage"><span class="ai-particle p1"></span><span class="ai-particle p2"></span><span class="ai-particle p3"></span><span class="ai-particle p4"></span><div class="ai-orb stage-'+st+'"><span class="ai-orb-halo"></span><span class="ai-orb-ring"></span><span class="ai-orb-ring ring-2"></span><div class="ai-orb-face">'+scenes[st]+'</div></div></div><div class="ai-lab-text"><span class="ai-lab-badge">AI · שלב '+(st+1)+' מתוך 3</span><p class="ai-lab-caption">'+caps[st]+'</p></div><div class="ai-seg">'+seg+'</div></div>';}
+r();setInterval(function(){st=(st+1)%3;r();},1800);</script></body></html>
