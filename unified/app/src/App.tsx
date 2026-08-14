@@ -745,6 +745,11 @@ function App() {
   const [clientAuthed, setClientAuthed] = useState(false)
   const [clientInfo, setClientInfo] = useState<{ name?: string; caseId?: string } | null>(null)
   const [clientLoginForm, setClientLoginForm] = useState({ caseId: '', code: '', error: '', busy: false })
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'google' | 'code'>('phone')
+  const [phoneLogin, setPhoneLogin] = useState({ phone: '', code: '', step: 'phone' as 'phone' | 'code', devCode: '', testMode: false, error: '', busy: false })
+  const [googleClientId, setGoogleClientId] = useState('')
+  const [showLogin, setShowLogin] = useState(false)
+  const [welcomeInfo, setWelcomeInfo] = useState<{ caseId?: string; code?: string } | null>(null)
 
   useEffect(() => {
     window.localStorage.setItem(selectedProfileStorageKey, selectedProfileId)
@@ -979,10 +984,64 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  // Fetch public runtime config (Google client id) once the client area is opened.
+  useEffect(() => {
+    if (route !== 'client' || googleClientId) return
+    fetch(`${apiBaseUrl}/api/public-config`)
+      .then((r) => r.json())
+      .then((d) => { if (d && d.googleClientId) setGoogleClientId(d.googleClientId) })
+      .catch(() => undefined)
+  }, [route, googleClientId])
+
+  // Load Google Identity Services and render the sign-in button when selected.
+  useEffect(() => {
+    if (route !== 'client' || clientAuthed || loginMethod !== 'google' || !googleClientId) return
+    const SRC = 'https://accounts.google.com/gsi/client'
+    const init = () => {
+      const g = (window as any).google
+      if (!g?.accounts?.id) return
+      g.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (resp: any) => { if (resp?.credential) handleGoogleCredential(resp.credential) },
+      })
+      const el = document.getElementById('google-signin-btn')
+      if (el) {
+        el.innerHTML = ''
+        g.accounts.id.renderButton(el, { theme: 'outline', size: 'large', width: 300, text: 'continue_with', locale: 'he' })
+      }
+    }
+    if ((window as any).google?.accounts?.id) { init(); return }
+    let script = document.querySelector(`script[src="${SRC}"]`) as HTMLScriptElement | null
+    if (!script) {
+      script = document.createElement('script')
+      script.src = SRC
+      script.async = true
+      script.defer = true
+      document.head.appendChild(script)
+    }
+    script.addEventListener('load', init)
+    return () => script?.removeEventListener('load', init)
+  }, [route, clientAuthed, loginMethod, googleClientId])
+
   const approveConsent = () => {
     try { window.localStorage.setItem('mya-consent', new Date().toISOString()) } catch { /* ignore */ }
     setConsent(true)
     setShowConsent(false)
+  }
+
+  const applyClientSession = (d: { profileId: string; name?: string; caseId?: string; isNew?: boolean; code?: string }) => {
+    setSelectedProfileId(d.profileId)
+    setClientInfo({ name: d.name, caseId: d.caseId })
+    setClientAuthed(true)
+    setShowLogin(false)
+    if (d.isNew) setWelcomeInfo({ caseId: d.caseId, code: d.code })
+  }
+
+  // Smart gate: services are browsable, but acting requires a quick login (which auto-opens a case).
+  const ensureAuth = (): boolean => {
+    if (clientAuthed) return true
+    setShowLogin(true)
+    return false
   }
 
   const handleClientLogin = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -996,15 +1055,73 @@ function App() {
       })
       const d = await r.json()
       if (r.ok && d.profileId) {
-        setSelectedProfileId(d.profileId)
-        setClientInfo({ name: d.name, caseId: d.caseId })
-        setClientAuthed(true)
+        applyClientSession(d)
         setClientLoginForm((f) => ({ ...f, busy: false, error: '' }))
       } else {
         setClientLoginForm((f) => ({ ...f, busy: false, error: d.error || 'התחברות נכשלה' }))
       }
     } catch {
       setClientLoginForm((f) => ({ ...f, busy: false, error: 'השרת אינו זמין כרגע' }))
+    }
+  }
+
+  const requestOtp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setPhoneLogin((f) => ({ ...f, busy: true, error: '' }))
+    try {
+      const r = await fetch(`${apiBaseUrl}/api/client/otp/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneLogin.phone }),
+      })
+      const d = await r.json()
+      if (r.ok && d.sent) {
+        setPhoneLogin((f) => ({ ...f, busy: false, step: 'code', devCode: d.devCode || '', testMode: !!d.testMode, error: '' }))
+      } else {
+        setPhoneLogin((f) => ({ ...f, busy: false, error: d.error || 'שליחת הקוד נכשלה' }))
+      }
+    } catch {
+      setPhoneLogin((f) => ({ ...f, busy: false, error: 'השרת אינו זמין כרגע' }))
+    }
+  }
+
+  const verifyOtp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setPhoneLogin((f) => ({ ...f, busy: true, error: '' }))
+    try {
+      const r = await fetch(`${apiBaseUrl}/api/client/otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneLogin.phone, code: phoneLogin.code }),
+      })
+      const d = await r.json()
+      if (r.ok && d.profileId) {
+        applyClientSession(d)
+        setPhoneLogin({ phone: '', code: '', step: 'phone', devCode: '', testMode: false, error: '', busy: false })
+      } else {
+        setPhoneLogin((f) => ({ ...f, busy: false, error: d.error || 'הקוד שגוי' }))
+      }
+    } catch {
+      setPhoneLogin((f) => ({ ...f, busy: false, error: 'השרת אינו זמין כרגע' }))
+    }
+  }
+
+  const handleGoogleCredential = async (credential: string) => {
+    try {
+      const r = await fetch(`${apiBaseUrl}/api/client/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      })
+      const d = await r.json()
+      if (r.ok && d.profileId) {
+        applyClientSession(d)
+      } else {
+        setPhoneLogin((f) => ({ ...f, error: d.error || 'כניסה עם Google נכשלה' }))
+        setLoginMethod('phone')
+      }
+    } catch {
+      setPhoneLogin((f) => ({ ...f, error: 'השרת אינו זמין כרגע' }))
     }
   }
 
@@ -1092,6 +1209,7 @@ function App() {
       return
     }
 
+    if (!ensureAuth()) return
     if (!consent) { setShowConsent(true); return }
 
     runAiAnalysis({ file: uploadedFile })
@@ -1222,6 +1340,7 @@ function App() {
       })
       return
     }
+    if (!ensureAuth()) return
     setIsCheckingQuestion(true)
     // Immediate local assessment + cited sources from public legal databases.
     const assessment = buildImmediateQuestionAssessment(legalQuestion)
@@ -1716,6 +1835,66 @@ function App() {
     }
   }
 
+  const loginMethodsMarkup = (
+    <>
+      <div className="login-methods">
+        <button type="button" className={`login-method-tab${loginMethod === 'phone' ? ' active' : ''}`} onClick={() => setLoginMethod('phone')}>📱 טלפון</button>
+        <button type="button" className={`login-method-tab${loginMethod === 'google' ? ' active' : ''}`} onClick={() => setLoginMethod('google')}>Google</button>
+        <button type="button" className={`login-method-tab${loginMethod === 'code' ? ' active' : ''}`} onClick={() => setLoginMethod('code')}>קוד מהמשרד</button>
+      </div>
+
+      {loginMethod === 'phone' && phoneLogin.step === 'phone' && (
+        <form onSubmit={requestOtp}>
+          <label>מספר טלפון נייד
+            <input type="tel" inputMode="tel" value={phoneLogin.phone} onChange={(e) => setPhoneLogin((f) => ({ ...f, phone: e.target.value }))} placeholder="050-000-0000" />
+          </label>
+          {phoneLogin.error && <p className="refund-error">{phoneLogin.error}</p>}
+          <button type="submit" className="primary-btn submit-btn" disabled={phoneLogin.busy}>{phoneLogin.busy ? 'שולח...' : 'שלח לי קוד ב-SMS'}</button>
+          <p className="login-hint-mini">נשלח קוד חד-פעמי לנייד. לקוח חדש — נפתח לך תיק אוטומטית.</p>
+        </form>
+      )}
+
+      {loginMethod === 'phone' && phoneLogin.step === 'code' && (
+        <form onSubmit={verifyOtp}>
+          {phoneLogin.testMode && phoneLogin.devCode && (
+            <p className="paid-banner">מצב בדיקה — הקוד שלך: <strong>{phoneLogin.devCode}</strong></p>
+          )}
+          <label>הקוד שקיבלת ב-SMS
+            <input inputMode="numeric" value={phoneLogin.code} onChange={(e) => setPhoneLogin((f) => ({ ...f, code: e.target.value }))} placeholder="6 ספרות" />
+          </label>
+          {phoneLogin.error && <p className="refund-error">{phoneLogin.error}</p>}
+          <button type="submit" className="primary-btn submit-btn" disabled={phoneLogin.busy}>{phoneLogin.busy ? 'מתחבר...' : 'כניסה'}</button>
+          <button type="button" className="bo-back-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setPhoneLogin((f) => ({ ...f, step: 'phone', code: '', error: '' }))}>← שינוי מספר / שליחה חוזרת</button>
+        </form>
+      )}
+
+      {loginMethod === 'google' && (
+        <div className="google-login-wrap">
+          {googleClientId ? (
+            <div id="google-signin-btn" className="google-btn-holder" />
+          ) : (
+            <p className="login-hint-mini">כניסת Google תופעל בקרוב (ממתין להגדרת המשרד). בינתיים אפשר להיכנס בטלפון או בקוד.</p>
+          )}
+          {phoneLogin.error && <p className="refund-error">{phoneLogin.error}</p>}
+          <p className="login-hint-mini">כניסה מהירה עם חשבון Google שלך.</p>
+        </div>
+      )}
+
+      {loginMethod === 'code' && (
+        <form onSubmit={handleClientLogin}>
+          <label>מספר תיק
+            <input value={clientLoginForm.caseId} onChange={(e) => setClientLoginForm((f) => ({ ...f, caseId: e.target.value }))} placeholder="מספר התיק שקיבלת מהמשרד" />
+          </label>
+          <label>קוד גישה
+            <input type="password" value={clientLoginForm.code} onChange={(e) => setClientLoginForm((f) => ({ ...f, code: e.target.value }))} />
+          </label>
+          {clientLoginForm.error && <p className="refund-error">{clientLoginForm.error}</p>}
+          <button type="submit" className="primary-btn submit-btn" disabled={clientLoginForm.busy}>{clientLoginForm.busy ? 'מתחבר...' : 'כניסה'}</button>
+        </form>
+      )}
+    </>
+  )
+
   return (
     <div className={route === 'client' ? 'page-shell client-mode' : 'page-shell'}>
       {showConsent && (
@@ -1739,6 +1918,34 @@ function App() {
           </div>
         </div>
       )}
+
+      {showLogin && !clientAuthed && (
+        <div className="consent-overlay" role="dialog" aria-modal="true" onClick={() => setShowLogin(false)}>
+          <div className="consent-modal login-modal" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="login-modal-close" aria-label="סגירה" onClick={() => setShowLogin(false)}>✕</button>
+            <p className="eyebrow">כניסה / הרשמה מהירה</p>
+            <h3>כניסה מהירה לאתר</h3>
+            <p className="client-login-sub">התחבר/י בשניות כדי להשתמש בשירותים. לקוח חדש — נפתח לך תיק אוטומטית.</p>
+            {loginMethodsMarkup}
+          </div>
+        </div>
+      )}
+
+      {welcomeInfo && (
+        <div className="consent-overlay" role="dialog" aria-modal="true" onClick={() => setWelcomeInfo(null)}>
+          <div className="consent-modal welcome-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>🎉 ברוך הבא! נפתח לך תיק אישי</h3>
+            <p className="client-login-sub">שמור/י את הפרטים — איתם תוכל/י להיכנס גם בעתיד:</p>
+            <div className="welcome-case">
+              <div><span>מספר תיק</span><strong>{welcomeInfo.caseId}</strong></div>
+              {welcomeInfo.code && <div><span>קוד גישה</span><strong>{welcomeInfo.code}</strong></div>}
+            </div>
+            <p className="login-hint-mini">אפשר להיכנס גם בטלפון או Google — בלי לזכור את הקוד.</p>
+            <button type="button" className="primary-btn" onClick={() => setWelcomeInfo(null)}>הבנתי, נמשיך</button>
+          </div>
+        </div>
+      )}
+
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark">M</div>
@@ -1754,7 +1961,11 @@ function App() {
           <a href="#services">שירותים</a>
           <a href="#faq">שאלות נפוצות</a>
           <a href="#contact">צור קשר</a>
-          <a href="#client" className="staff-link">כניסת לקוחות</a>
+          {clientAuthed ? (
+            <a href="#client" className="staff-link">שלום, {clientInfo?.name || 'לקוח'} · אזור אישי</a>
+          ) : (
+            <button type="button" className="staff-link login-nav-btn" onClick={() => setShowLogin(true)}>כניסה / הרשמה</button>
+          )}
           <a href="#staff" className="staff-link">אזור צוות</a>
         </nav>
 
@@ -2328,28 +2539,41 @@ function App() {
             <div className="client-login-card">
               <p className="eyebrow">אזור אישי · כניסת לקוחות</p>
               <h2>כניסה לתיק האישי שלך</h2>
-              <p className="client-login-sub">הזן/י את מספר התיק וקוד הגישה שקיבלת מהמשרד. אזור זה מופרד ומאובטח — פרטי הלקוחות אינם חשופים בדף הכללי.</p>
-              <form onSubmit={handleClientLogin}>
-                <label>מספר תיק
-                  <input value={clientLoginForm.caseId} onChange={(e) => setClientLoginForm((f) => ({ ...f, caseId: e.target.value }))} placeholder="מספר התיק שקיבלת מהמשרד" />
-                </label>
-                <label>קוד גישה
-                  <input type="password" value={clientLoginForm.code} onChange={(e) => setClientLoginForm((f) => ({ ...f, code: e.target.value }))} />
-                </label>
-                {clientLoginForm.error && <p className="refund-error">{clientLoginForm.error}</p>}
-                <button type="submit" className="primary-btn submit-btn" disabled={clientLoginForm.busy}>{clientLoginForm.busy ? 'מתחבר...' : 'כניסה'}</button>
-              </form>
+              <p className="client-login-sub">כניסה מהירה ומאובטחת. לקוח חדש — נפתח לך תיק אוטומטית. אזור זה מופרד ומאובטח.</p>
+
+              {loginMethodsMarkup}
+
               <a className="bo-back-link" href="#legal-tool" onClick={() => { window.location.hash = ''; }}>← חזרה לאתר</a>
             </div>
           </section>
         )}
 
-        {clientAuthed && (
+        {clientAuthed && (route === 'client' || route === 'portal') && (
         <section id="portal" className="section portal-section" aria-label="לוח לקוח אישי">
           <div className="section-header">
             <p className="eyebrow">לוח לקוח · {clientInfo?.name || activeProfile.name}</p>
             <h2>הדף האישי של {clientInfo?.name || activeProfile.name}</h2>
             <button type="button" className="bo-back-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setClientAuthed(false); setClientInfo(null); setClientLoginForm({ caseId: '', code: '', error: '', busy: false }) }}>← יציאה מהאזור האישי</button>
+          </div>
+
+          <div className="share-bar" aria-label="שיתוף האתר">
+            <span className="share-bar-label">מרוצים מהשירות? שתפו את האתר:</span>
+            <div className="share-buttons">
+              {(() => {
+                const shareUrl = 'https://www.my-attorney.net'
+                const shareText = 'בדיקה משפטית מיידית ובקשת החזר עיקול — My-Attorney'
+                const enc = encodeURIComponent
+                return (
+                  <>
+                    <a className="share-btn wa" href={`https://wa.me/?text=${enc(shareText + ' ' + shareUrl)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                    <a className="share-btn fb" href={`https://www.facebook.com/sharer/sharer.php?u=${enc(shareUrl)}`} target="_blank" rel="noopener noreferrer">Facebook</a>
+                    <a className="share-btn li" href={`https://www.linkedin.com/sharing/share-offsite/?url=${enc(shareUrl)}`} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    <a className="share-btn x" href={`https://twitter.com/intent/tweet?text=${enc(shareText)}&url=${enc(shareUrl)}`} target="_blank" rel="noopener noreferrer">X</a>
+                    <button type="button" className="share-btn copy" onClick={() => { try { navigator.clipboard?.writeText(shareUrl) } catch { /* ignore */ } }}>העתק קישור</button>
+                  </>
+                )
+              })()}
+            </div>
           </div>
 
           <div className="portal-layout">
