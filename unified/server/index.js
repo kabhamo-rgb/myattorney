@@ -722,9 +722,9 @@ app.get('/api/public-config', (_req, res) => {
 /* ===================== PUBLIC: Stripe checkout ================== */
 // Canonical price list (server-side, in ILS) — never trust client amounts.
 const PRICING = {
-  'lien-check': { name: 'בדיקת עיקול / עיקול כספים ביתר', amount: 290 },
-  'single-form': { name: 'הכנת טופס משפטי בודד', amount: 190 },
-  'form-set': { name: 'סט טפסים לתיק שלם', amount: 490 },
+  // בדיקת/החזר עיקול = חינם + עמלת הצלחה (25%+מע״מ) — לא נגבה מראש, לכן אינו כאן.
+  'single-form': { name: 'הכנת טופס בודד + שליחה (הוצל״פ / דרישת תשלום)', amount: 190 },
+  'form-set': { name: 'סט טפסים לתיק הוצל״פ שלם', amount: 490 },
 }
 app.post('/api/create-checkout', async (req, res) => {
   const key = process.env.STRIPE_SECRET_KEY
