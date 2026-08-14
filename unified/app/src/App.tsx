@@ -3,28 +3,28 @@ import './App.css'
 
 const services = [
   {
-    title: 'מיזוגים ורכישות',
-    description: 'ליווי מלא בתהליך העסקה, מסמכי המו"מ, בדיקות נאותות והבטחת זכויותיך בכל שלב.',
+    title: 'בדיקת עיקול וגביית־יתר',
+    description: 'בדיקה חינם של יתרת החוב מול הסכומים שנגבו בפועל, ואיתור גבייה או עיקול ביתר — ללא עלות וללא התחייבות.',
     accent: '01',
-    label: 'עסקאות וחוזים',
+    label: 'חינם',
   },
   {
-    title: 'דיני עבודה',
-    description: 'ייצוג עובדים ועסקים מול סכסוכי העסקה, פיטורים, גמול, פיצויים והסכמים.',
+    title: 'טיפול והגשת בקשה להחזר',
+    description: 'הכנת הבקשה והגשתה בשמך מול רשות האכיפה והגבייה, בליווי עורך דין. עמלת הצלחה בלבד — משלמים רק מהחזר שהתקבל.',
     accent: '02',
-    label: 'הגנה על זכויות',
+    label: '25% + מע״מ · ללא זכייה אין תשלום',
   },
   {
-    title: 'נזיקין ותאונות',
-    description: 'מציאת דרך משפטית אפקטיבית להחזרת זכויותיך, פיצוי והגנה על האינטרסים שלך.',
+    title: 'הכנת טפסים לתיקי הוצל״פ',
+    description: 'ניסוח והגשה של טפסים ומסמכים בתיקי הוצאה לפועל ודרישות תשלום — טופס בודד או סט מלא לתיק.',
     accent: '03',
-    label: 'פיצויים ותביעות',
+    label: 'בתשלום · ₪190 / ₪490',
   },
   {
-    title: 'משפחה וירושה',
-    description: 'סיום סכסוכים, הסדרים, צוואות, עיזבונות וניהול הליכים רגישים עם כלים מקצועיים.',
+    title: 'ניטור והתראות לעסקים',
+    description: 'שירות מנוי לעסקים למעקב שוטף אחר חובות, עיקולים והתראות — כדי לזהות גבייה ביתר מוקדם ולפעול בזמן.',
     accent: '04',
-    label: 'ייעוץ רגיש ויסודי',
+    label: 'מנוי · בקרוב',
   },
 ]
 
@@ -37,10 +37,10 @@ const stats = [
 ]
 
 const steps = [
-  'פגישה ראשונית והבנת המקרה',
-  'ניתוח המשפטי ותכנון פעולה',
-  'ייצוג מקצועי מול הצד השני',
-  'מענה עד לסיום ההליך',
+  'בדיקת עיקול חינם במחשבון',
+  'מיון ראשוני ובדיקת עורך דין',
+  'חתימה דיגיטלית והגשת בקשה להחזר',
+  'קבלת ההחזר — עמלה רק מהתוצאה',
 ]
 
 const team = [
@@ -52,16 +52,20 @@ const testimonials: { quote: string; name: string; role: string }[] = []
 
 const faqs = [
   {
-    question: 'האם ניתן לקבוע פגישה ראשונית ללא התחייבות?',
-    answer: 'כן. אנו מקיימים פגישות ייעוץ ראשוניות ללא התחייבות, במטרה להכיר את המקרה ולהציע מסלול פעולה מתאים.',
+    question: 'מה זה «גבייה ביתר» או «עיקול ביתר»?',
+    answer: 'מצב שבו נגבו ממך במסגרת הליכי הוצאה לפועל סכומים העולים על החוב האמיתי — למשל בשל ריבית שגויה, כפל חיוב, גבייה לאחר סילוק החוב, או עיקול על כספים מוגנים. במקרים כאלה ייתכן שמגיע לך החזר.',
   },
   {
-    question: 'האם אתם מייצגים גם חברות וארגונים?',
-    answer: 'כן. אנו מספקים ליווי משפטי לחברות, בעלי עסקים, מנהלים ועמותות, הן במישור האסטרטגי והן במישור המשפטי.',
+    question: 'כמה עולה הבדיקה?',
+    answer: 'הבדיקה הראשונית ובדיקת הזכאות להחזר — ללא עלות וללא התחייבות. אם מטופלת ומתקבלת השבה בפועל, שכר הטרחה הוא 25% בתוספת מע״מ מהסכום שיוחזר בלבד. ללא זכייה — אין תשלום.',
   },
   {
-    question: 'כמה זמן לוקח להגיש תביעה או לנהל הליך?',
-    answer: 'הזמן משתנה בהתאם למורכבות המקרה, אך אנו עובדים על תחילת טיפול מהירה, ניתוח מהיר של הראיות והתאמת זמן הליך.',
+    question: 'הבדיקה באתר היא ייעוץ משפטי?',
+    answer: 'לא. הכלי מבצע מיון ראשוני בלבד המבוסס על מאגרים ציבוריים רשמיים, ואינו קובע זכאות או מבטיח תוצאה. תשובה מותאמת נבדקת על ידי עו״ד מוחמד קבהא (מ.ר 67912) לפני כל פעולה.',
+  },
+  {
+    question: 'איך מתחילים?',
+    answer: 'ממלאים את מחשבון בדיקת העיקול (יתרת החוב מול מה שנגבה), מקבלים מיון ראשוני, ואם עולה חשש לגבייה ביתר — מגישים בקשה להחזר בחתימה דיגיטלית על הסכם שכר טרחה וייפוי כוח, והמשרד מטפל בהמשך.',
   },
 ]
 
@@ -707,7 +711,7 @@ function App() {
   const [auditDateRange, setAuditDateRange] = useState<'all' | '7' | '30'>('all')
   const [pendingDeleteDocument, setPendingDeleteDocument] = useState<DocumentRecord | null>(null)
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false)
-  const [heroTab, setHeroTab] = useState<'document' | 'garnish' | 'question'>('document')
+  const [heroTab, setHeroTab] = useState<'document' | 'garnish' | 'question'>('garnish')
   const [legalQuestion, setLegalQuestion] = useState('')
   const [isCheckingQuestion, setIsCheckingQuestion] = useState(false)
   const [garnishInput, setGarnishInput] = useState<GarnishmentInput>({ originalDebt: '', totalCollected: '', extraCharges: '', incomeType: 'salary' })
@@ -2047,11 +2051,11 @@ function App() {
 
           <div className="tool-card">
             <div className="tool-tabs" role="tablist">
-              <button type="button" role="tab" className={heroTab === 'document' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('document')}>
-                📄 בדיקת מסמך
-              </button>
               <button type="button" role="tab" className={heroTab === 'garnish' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('garnish')}>
                 🧮 בדיקת עיקול
+              </button>
+              <button type="button" role="tab" className={heroTab === 'document' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('document')}>
+                📄 בדיקת מסמך
               </button>
               <button type="button" role="tab" className={heroTab === 'question' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('question')}>
                 ⚖️ שאלה
@@ -2369,8 +2373,8 @@ function App() {
 
         <section id="services" className="section services-section">
           <div className="section-header">
-            <p className="eyebrow">תחומי עיסוק</p>
-            <h2>פתרונות משפטיים שמותאמים לתחום שלך</h2>
+            <p className="eyebrow">מה אנחנו עושים</p>
+            <h2>מומחיות ממוקדת: עיקולים, גביית־יתר והחזרים</h2>
           </div>
 
           <div className="services-grid">
