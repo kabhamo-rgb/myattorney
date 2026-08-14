@@ -189,6 +189,50 @@ const app = express()
 const port = process.env.PORT || 4000
 
 app.use(cors())
+
+// Stripe webhook — MUST receive the raw body, so it is registered before express.json().
+app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) return res.status(200).end()
+  try {
+    const Stripe = (await import('stripe')).default
+    const stripe = new Stripe(key)
+    const whsec = process.env.STRIPE_WEBHOOK_SECRET
+    let event
+    if (whsec) {
+      event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], whsec)
+    } else {
+      event = JSON.parse(req.body.toString('utf8'))
+    }
+    if (event.type === 'checkout.session.completed') {
+      const s = event.data.object || {}
+      const email = (s.customer_details && s.customer_details.email) || ''
+      const name = (s.customer_details && s.customer_details.name) || ''
+      const amount = (s.amount_total || 0) / 100
+      const desc = (s.metadata && s.metadata.itemName) || 'תשלום עבור שירות'
+      appendAudit({ area: 'payments', action: 'payment_completed', actor: 'public', detail: `${desc} | ₪${amount} | ${email}` })
+      const lead = {
+        id: genId('pay'), type: 'payment', name: name || email || 'תשלום', email, phone: '',
+        topic: 'תשלום טפסים', message: `${desc} · ₪${amount}`, amount, status: 'new', source: 'תשלום', createdAt: new Date().toISOString(),
+      }
+      const cur = load('leads', [])
+      save('leads', [lead, ...cur])
+      const inv = await issueInvoice({ name, email, amount, description: desc })
+      if (inv && inv.docId) appendAudit({ area: 'payments', action: 'invoice_issued', actor: 'system', detail: `${desc} | ${inv.docId}`, refId: lead.id })
+      if (email) {
+        sendEmail(email, 'אישור תשלום וחשבונית — משרד עורכי דין מוחמד קבהא',
+          `<div dir="rtl" style="font-family:Arial"><h3>שלום ${escapeHtml(name || '')},</h3>
+          <p>קיבלנו את תשלומך על סך ₪${amount} עבור: ${escapeHtml(desc)}.</p>
+          ${inv && inv.url ? `<p><b>חשבונית/קבלה:</b> <a href="${inv.url}">${inv.url}</a></p>` : '<p>חשבונית מס/קבלה תישלח אליך בנפרד.</p>'}
+          <p>תודה,<br>משרד עורכי דין מוחמד מ. קבהא · מ.ר 67912 · 052-661-1866</p></div>`).catch(() => {})
+      }
+    }
+    res.json({ received: true })
+  } catch (e) {
+    res.status(400).send(`Webhook Error: ${String(e?.message || e).slice(0, 120)}`)
+  }
+})
+
 app.use(express.json({ limit: '2mb' }))
 app.use('/uploads', express.static(uploadsDirPath))
 
@@ -695,6 +739,18 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+// Digital invoice hook — issues a tax-compliant חשבונית מס/קבלה via an Israeli provider.
+// Activates when INVOICE_API_KEY is set. Returns { docId, url } or null.
+const INVOICE_ENABLED = !!process.env.INVOICE_API_KEY
+async function issueInvoice({ name, email, amount, description }) {
+  if (!INVOICE_ENABLED) return null
+  // TODO: integrate the office's Israeli invoicing provider (Morning/חשבונית ירוקה,
+  // iCount, EZcount) to create a חשבונית מס/קבלה (with allocation number / מספר הקצאה)
+  // and return its { docId, url }. Wired once the provider + API key are chosen.
+  void name; void email; void amount; void description
+  return null
+}
+
 // Phone OTP: request a code (test mode returns it on screen until SMS provider is wired).
 const otpStore = new Map() // phoneKey -> { code, expiresAt, profileId }
 app.post('/api/client/otp/request', async (req, res) => {
@@ -778,6 +834,20 @@ app.get('/api/public-config', (_req, res) => {
   res.json({ googleClientId: process.env.GOOGLE_CLIENT_ID || '' })
 })
 
+// Bank transfer details — served on demand only (kept out of the public page source).
+app.get('/api/payment-details', (_req, res) => {
+  res.json({
+    bank: {
+      name: 'בנק לאומי',
+      bankCode: '10',
+      branch: '983',
+      branchName: 'באקה',
+      account: '2710621',
+      owner: 'עו״ד מוחמד מ. קבהא',
+    },
+  })
+})
+
 /* ===================== PUBLIC: Stripe checkout ================== */
 // Canonical price list (server-side, in ILS) — never trust client amounts.
 const PRICING = {
@@ -816,6 +886,7 @@ app.post('/api/create-checkout', async (req, res) => {
       // Apple Pay / Google Pay appear automatically on Stripe's hosted Checkout.
       success_url: `${origin}/?paid=1#pricing`,
       cancel_url: `${origin}/#pricing`,
+      metadata: { tier, itemName: item.name },
     })
     appendAudit({ area: 'payments', action: 'checkout_created', actor: 'public', detail: `${item.name} | ₪${item.amount}` })
     res.json({ url: session.url })
@@ -930,7 +1001,7 @@ app.get('/api/crm/refunds', requireStaff, (_req, res) => {
 // Payments feed (from audit).
 app.get('/api/crm/payments', requireStaff, (_req, res) => {
   const audit = load('audit', [])
-  res.json({ payments: audit.filter((a) => a.action === 'checkout_created').slice(0, 100) })
+  res.json({ payments: audit.filter((a) => ['checkout_created', 'payment_completed', 'invoice_issued'].includes(a.action)).slice(0, 100) })
 })
 
 app.delete('/api/leads/:id', requireStaff, (req, res) => {
