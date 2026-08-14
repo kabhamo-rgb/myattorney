@@ -734,6 +734,7 @@ function App() {
   const [aiLoading, setAiLoading] = useState(false)
   const [garnishProcessing, setGarnishProcessing] = useState(false)
   const [procStage, setProcStage] = useState(0)
+  const [countUp, setCountUp] = useState(0)
   const [consent, setConsent] = useState<boolean>(() => {
     try { return !!window.localStorage.getItem('mya-consent') } catch { return false }
   })
@@ -990,6 +991,23 @@ function App() {
     const id = setInterval(() => setProcStage((s) => Math.min(s + 1, 2)), 1500)
     return () => clearInterval(id)
   }, [aiLoading, garnishProcessing])
+
+  // Count-up animation for the estimated over-collected amount.
+  useEffect(() => {
+    const target = Number(garnishResult?.estimatedOverpaid) || 0
+    if (!target) { setCountUp(0); return }
+    let raf = 0
+    const start = performance.now()
+    const dur = 1300
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / dur)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setCountUp(Math.round(target * eased))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [garnishResult])
 
   // Fetch public runtime config (Google client id) once the client area is opened.
   useEffect(() => {
@@ -2364,12 +2382,30 @@ function App() {
                   <h3>🧮 {garnishResult.title}</h3>
                   <span className={`risk-pill risk-${garnishResult.riskLevel}`}>{garnishResult.riskLevel}</span>
                 </div>
-                {garnishResult.estimatedOverpaid > 0 && (
-                  <div className="overpaid-banner">
-                    <span>הערכת גבייה ביתר</span>
-                    <strong>{'₪' + garnishResult.estimatedOverpaid.toLocaleString('he-IL')}</strong>
+
+                <div className="report-hero">
+                  <div className="risk-gauge">
+                    <svg viewBox="0 0 200 120" role="img" aria-label={`רמת סיכון: ${garnishResult.riskLevel}`}>
+                      <path className="gauge-arc" d="M20 100 A80 80 0 0 1 60 30.7" stroke="#22c55e" />
+                      <path className="gauge-arc" d="M60 30.7 A80 80 0 0 1 140 30.7" stroke="#f59e0b" />
+                      <path className="gauge-arc" d="M140 30.7 A80 80 0 0 1 180 100" stroke="#ef4444" />
+                      <g className="gauge-needle">
+                        <line x1="100" y1="100" x2="100" y2="42" stroke="#0f172a" strokeWidth="3.6" strokeLinecap="round" />
+                        <animateTransform attributeName="transform" type="rotate" from="-86 100 100" to={`${{ 'נמוך': -60, 'בינוני': 0, 'גבוה': 60 }[garnishResult.riskLevel] ?? 0} 100 100`} dur="0.9s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.2 1 0.3 1" />
+                      </g>
+                      <circle cx="100" cy="100" r="6.5" fill="#0f172a" />
+                    </svg>
+                    <div className="risk-gauge-labels"><span>נמוך</span><span>בינוני</span><span>גבוה</span></div>
                   </div>
-                )}
+
+                  {garnishResult.estimatedOverpaid > 0 && (
+                    <div className="overpaid-hero">
+                      <span className="overpaid-hero-label">הערכת גבייה ביתר</span>
+                      <strong className="overpaid-hero-num">{'₪' + countUp.toLocaleString('he-IL')}</strong>
+                      <span className="overpaid-hero-sub">סכום פוטנציאלי להחזר</span>
+                    </div>
+                  )}
+                </div>
                 {garnishResult.estimatedOverpaid > 0 && (
                   <p className="success-fee-note">💚 <strong>הבדיקה חינם · ללא תשלום מראש</strong> — אנחנו מטפלים בהגשת הבקשה, ותשלמו עמלת הצלחה של <strong>25% + מע״מ</strong> רק מהסכום שנחזיר לכם בפועל. ללא זכייה — אין תשלום.</p>
                 )}

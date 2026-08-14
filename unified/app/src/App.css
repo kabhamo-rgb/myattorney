@@ -1918,3 +1918,28 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 .review-result .handle-cta, .review-result .refund-done { margin-inline: 0; }
 /* Risk pill on dark gradient header: keep readable */
 .report-header .risk-pill { box-shadow: 0 0 0 1px rgba(255,255,255,0.12); }
+
+/* ================= Risk gauge + count-up hero ================= */
+.report-hero {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 18px; justify-content: center;
+  background: linear-gradient(135deg, #f8fafc, #eef2ff); border: 1px solid #e2e8f0;
+  border-radius: 16px; padding: 16px; margin: 4px 0 6px;
+}
+.risk-gauge { width: 180px; flex-shrink: 0; text-align: center; }
+.risk-gauge svg { width: 100%; height: auto; overflow: visible; }
+.gauge-arc { fill: none; stroke-width: 15; stroke-linecap: round; opacity: 0.9; }
+.gauge-needle { transform-origin: 100px 100px; }
+.risk-gauge-labels { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; font-weight: 700; margin-top: -6px; padding: 0 4px; }
+
+.overpaid-hero { flex: 1; min-width: 160px; text-align: center; }
+.overpaid-hero-label { display: block; font-size: 13px; font-weight: 700; color: #92400e; }
+.overpaid-hero-num {
+  display: block; font-size: 40px; line-height: 1.1; font-weight: 900; margin: 4px 0;
+  background: linear-gradient(120deg, #b45309, #d97706); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+.overpaid-hero-sub { display: block; font-size: 12.5px; color: #64748b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge-needle animateTransform { display: none; }
+}
