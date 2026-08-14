@@ -749,6 +749,18 @@ function App() {
   const [googleClientId, setGoogleClientId] = useState('')
   const [showLogin, setShowLogin] = useState(false)
   const [welcomeInfo, setWelcomeInfo] = useState<{ caseId?: string; code?: string } | null>(null)
+  const [bankDetails, setBankDetails] = useState<{ name?: string; bankCode?: string; branch?: string; branchName?: string; account?: string; owner?: string } | null>(null)
+  const [bankLoading, setBankLoading] = useState(false)
+  const revealBank = async () => {
+    if (bankDetails || bankLoading) return
+    setBankLoading(true)
+    try {
+      const r = await fetch(`${apiBaseUrl}/api/payment-details`)
+      const d = await r.json()
+      if (d && d.bank) setBankDetails(d.bank)
+    } catch { /* ignore */ }
+    setBankLoading(false)
+  }
 
   useEffect(() => {
     window.localStorage.setItem(selectedProfileStorageKey, selectedProfileId)
@@ -2787,10 +2799,38 @@ function App() {
           </div>
           <div className="pay-options">
             <p className="pay-methods">💳 להכנת טפסים בתשלום: כרטיס אשראי · Apple Pay · Google Pay</p>
-            <p className="pay-options-alt">
-              חשבונך מוגבל או שלא נוח לך בכרטיס? אפשר לשלם גם ב‑<strong>Bit</strong>, ב<strong>העברה בנקאית</strong> או <strong>במשרד</strong> — {' '}
-              <a className="pay-contact" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('שלום, אני רוצה להסדיר תשלום עבור הכנת טפסים (Bit / העברה / במשרד)')}`} target="_blank" rel="noreferrer noopener">צרו קשר בוואטסאפ ונסדיר</a> או בטלפון 052-661-1866.
-            </p>
+            <div className="pay-alt-box">
+              <p className="pay-alt-title">חשבונך מוגבל או שלא נוח בכרטיס? אפשר לשלם גם כך:</p>
+              <div className="pay-alt-grid">
+                <div className="pay-alt-card">
+                  <span className="pay-alt-badge">Bit</span>
+                  <strong>052-661-1866</strong>
+                  <span className="pay-alt-sub">ע״ש עו״ד מוחמד מ. קבהא</span>
+                </div>
+                <div className="pay-alt-card">
+                  <span className="pay-alt-badge">העברה בנקאית</span>
+                  {bankDetails ? (
+                    <>
+                      <strong>{bankDetails.name} ({bankDetails.bankCode})</strong>
+                      <span className="pay-alt-sub">סניף {bankDetails.branch} ({bankDetails.branchName}) · חשבון {bankDetails.account}</span>
+                      <span className="pay-alt-sub">ע״ש {bankDetails.owner}</span>
+                    </>
+                  ) : (
+                    <button type="button" className="pay-reveal-btn" onClick={revealBank}>{bankLoading ? 'טוען…' : 'הצג פרטים לתשלום'}</button>
+                  )}
+                </div>
+                <div className="pay-alt-card">
+                  <span className="pay-alt-badge">במשרד</span>
+                  <strong>בתיאום מראש</strong>
+                  <span className="pay-alt-sub">בסמ״ה, רח' אלבוח'ארי 95</span>
+                </div>
+              </div>
+              <p className="pay-alt-note">
+                אחרי תשלום ב‑Bit או בהעברה — {' '}
+                <a className="pay-contact" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('שלום, ביצעתי תשלום עבור הכנת טפסים (Bit/העברה) — מצרף אישור')}`} target="_blank" rel="noreferrer noopener">שלחו אישור בוואטסאפ</a> {' '}
+                או התקשרו 052-661-1866, ונתחיל בטיפול.
+              </p>
+            </div>
           </div>
           <p className="pricing-note">* עמלת ההצלחה (25% + מע״מ) ותעריפי הטפסים כפופים לאישור עורך הדין ולהסכם שכר טרחה חתום. המחירים להמחשה וניתנים לעדכון.</p>
         </section>
