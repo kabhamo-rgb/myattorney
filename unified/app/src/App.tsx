@@ -3352,7 +3352,10 @@ function App() {
           <p>כתובת: בסמ״ה, רח' אלבוח'ארי 95, מיקוד 3002300 · טלפון: 052-661-1866 · דוא״ל: info@my-attorney.net</p>
           <p className="footer-mini">האתר מופעל כמערכת קליטה ומיון בפיקוח משרד עורכי דין. המידע והכלים אינם מהווים ייעוץ משפטי ואינם תחליף לייעוץ פרטני. אין בשימוש באתר כדי ליצור יחסי עורך דין–לקוח, אשר ייווצרו רק בהסכם התקשרות חתום.</p>
           <nav className="footer-legal">
-            <a href="/madrich-ikul.html">מדריך: עיקול וגביית־יתר</a>
+            <a href="/madrich-ikul.html">מדריך: גבייה ביתר</a>
+            <a href="/ikul-cheshbon-bank.html">עיקול חשבון בנק</a>
+            <a href="/ikul-mascoret.html">עיקול משכורת</a>
+            <a href="/taanat-pareti.html">טענת פרעתי</a>
             <a href="#privacy">מדיניות פרטיות</a>
             <a href="#terms">תקנון ותנאי שימוש</a>
             <a href="#accessibility">הצהרת נגישות</a>
