@@ -3355,7 +3355,10 @@ function App() {
             <a href="/madrich-ikul.html">מדריך: גבייה ביתר</a>
             <a href="/ikul-cheshbon-bank.html">עיקול חשבון בנק</a>
             <a href="/ikul-mascoret.html">עיקול משכורת</a>
+            <a href="/ikul-bituach-leumi.html">עיקול ביטוח לאומי</a>
+            <a href="/ikul-rechev.html">עיקול רכב</a>
             <a href="/taanat-pareti.html">טענת פרעתי</a>
+            <a href="/schomim-mugganim.html">סכומים מוגנים</a>
             <a href="#privacy">מדיניות פרטיות</a>
             <a href="#terms">תקנון ותנאי שימוש</a>
             <a href="#accessibility">הצהרת נגישות</a>
