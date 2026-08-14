@@ -82,26 +82,27 @@ const faqs = [
 // NOTE: placeholder prices — replace with the firm's real rates.
 const pricingTiers = [
   {
-    id: 'lien-check',
-    name: 'בדיקת עיקול / עיקול ביתר',
-    price: '₪290',
-    tagline: 'הכלי המבוקש ביותר',
+    free: true,
+    name: 'בדיקת עיקול / החזר עיקול ביתר',
+    price: 'חינם',
+    tagline: 'הכלי המבוקש ביותר · ללא תשלום מראש',
     highlight: true,
     features: [
-      'בדיקת יתרת חוב מול סכומים שנגבו',
-      'איתור גבייה/עיקול ביתר',
-      'הכנת בקשה לרשם ההוצאה לפועל',
-      'שליחה אונליין בשמך',
+      'בדיקת יתרת חוב מול הסכומים שנגבו — ללא עלות',
+      'איתור גבייה / עיקול ביתר',
+      'הגשת בקשה להחזר בשמך',
+      'משלמים רק אם מתקבל החזר — 25% + מע״מ',
+      'ללא זכייה — אין תשלום',
     ],
   },
   {
     id: 'single-form',
-    name: 'הכנת טופס משפטי בודד',
+    name: 'הכנת טופס בודד + שליחה',
     price: '₪190',
-    tagline: 'מכתב דרישה / התראה / בקשה',
+    tagline: 'הוצל״פ · דרישת תשלום · התראה · בקשה',
     highlight: false,
     features: [
-      'ניסוח טופס לפי סוג המקרה',
+      'ניסוח טופס לפי סוג המקרה (הוצל״פ / דרישת תשלום)',
       'התאמה אישית לפרטי התיק',
       'קובץ מוכן להגשה',
       'שליחה אונליין ליעד',
@@ -109,12 +110,12 @@ const pricingTiers = [
   },
   {
     id: 'form-set',
-    name: 'סט טפסים לתיק שלם',
+    name: 'סט טפסים לתיק הוצל״פ שלם',
     price: '₪490',
-    tagline: 'מספר מסמכים מקושרים',
+    tagline: 'תיק הוצל״פ / מספר מסמכים מקושרים',
     highlight: false,
     features: [
-      'סט טפסים מלא לפי סוג ההליך',
+      'סט טפסים מלא לפי סוג ההליך (הוצל״פ)',
       'בדיקת מסמכים נלווים',
       'ליווי עד להגשה',
       'שליחה וארכוב בתיק',
@@ -2144,7 +2145,7 @@ function App() {
                   </div>
                 )}
                 {garnishResult.estimatedOverpaid > 0 && (
-                  <p className="success-fee-note">💚 <strong>ללא תשלום מראש</strong> — אנחנו מטפלים בהגשת הבקשה, ותשלמו עמלה רק מהסכום שנחזיר לכם בפועל.</p>
+                  <p className="success-fee-note">💚 <strong>הבדיקה חינם · ללא תשלום מראש</strong> — אנחנו מטפלים בהגשת הבקשה, ותשלמו עמלת הצלחה של <strong>25% + מע״מ</strong> רק מהסכום שנחזיר לכם בפועל. ללא זכייה — אין תשלום.</p>
                 )}
                 <p className="verdict-line">{garnishResult.verdict}</p>
                 <p>{garnishResult.summary}</p>
@@ -2501,10 +2502,9 @@ function App() {
 
         <section id="pricing" className="section pricing-section" aria-label="תמחור לפי סוג תיק">
           <div className="section-header">
-            <p className="eyebrow">הכנת טפסים ושליחה אונליין</p>
-            <h2>עלות לפי סוג התיק</h2>
-            <p>בוחרים שירות, משלמים באתר, ואנחנו מכינים ושולחים בשמך.</p>
-            <p className="pay-methods">💳 תשלום מאובטח · Apple Pay · Google Pay · כל כרטיסי האשראי</p>
+            <p className="eyebrow">בדיקה חינם · משלמים רק על הצלחה</p>
+            <h2>בדיקת עיקול — חינם. עמלה רק מהחזר בפועל.</h2>
+            <p>הבדיקה ובדיקת הזכאות להחזר — ללא עלות. אם מגיע לכם החזר, אנחנו מטפלים בהגשה, ומשלמים עמלת הצלחה של <strong>25% + מע״מ</strong> רק מהסכום שנחזיר לכם בפועל. ללא זכייה — אין תשלום.</p>
             {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1' && (
               <p className="paid-banner">✅ התשלום התקבל בהצלחה! נציג/ת מהמשרד יחזרו אליך בהקדם.</p>
             )}
@@ -2521,8 +2521,12 @@ function App() {
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
-                {'id' in tier ? (
-                  <button type="button" className={tier.highlight ? 'primary-btn' : 'secondary-btn'} onClick={() => handleCheckout((tier as { id: string }).id)}>
+                {'free' in tier ? (
+                  <button type="button" className="primary-btn" onClick={() => { startLiensCheck(); window.location.hash = 'legal-tool' }}>
+                    התחל בדיקה חינם
+                  </button>
+                ) : 'id' in tier ? (
+                  <button type="button" className="secondary-btn" onClick={() => handleCheckout((tier as { id: string }).id)}>
                     לתשלום מאובטח
                   </button>
                 ) : (
@@ -2531,7 +2535,8 @@ function App() {
               </div>
             ))}
           </div>
-          <p className="pricing-note">* המחירים להמחשה — יש לעדכן לתעריפי המשרד בפועל.</p>
+          <p className="pay-methods">💳 להכנת טפסים בתשלום: Apple Pay · Google Pay · כל כרטיסי האשראי</p>
+          <p className="pricing-note">* עמלת ההצלחה (25% + מע״מ) ותעריפי הטפסים כפופים לאישור עורך הדין ולהסכם שכר טרחה חתום. המחירים להמחשה וניתנים לעדכון.</p>
         </section>
 
         {route === 'client' && !clientAuthed && (
