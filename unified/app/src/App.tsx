@@ -2754,6 +2754,11 @@ function App() {
               <p className="paid-banner">✅ התשלום התקבל בהצלחה! נציג/ת מהמשרד יחזרו אליך בהקדם.</p>
             )}
           </div>
+
+          <div className="no-upfront-banner">
+            🛡️ <strong>מעוקל? אתה לא משלם שקל מראש.</strong> בבדיקת/החזר עיקול — שכר הטרחה נגבה <strong>רק מההחזר שיתקבל</strong>, מתוך הכסף שחוזר אליך. גם אם חשבונך מוגבל — אפשר להתחיל בלי כל תשלום מקדים.
+          </div>
+
           <div className="pricing-grid">
             {pricingTiers.map((tier) => (
               <div key={tier.name} className={`pricing-card${tier.highlight ? ' featured' : ''}`}>
@@ -2780,7 +2785,13 @@ function App() {
               </div>
             ))}
           </div>
-          <p className="pay-methods">💳 להכנת טפסים בתשלום: Apple Pay · Google Pay · כל כרטיסי האשראי</p>
+          <div className="pay-options">
+            <p className="pay-methods">💳 להכנת טפסים בתשלום: כרטיס אשראי · Apple Pay · Google Pay</p>
+            <p className="pay-options-alt">
+              חשבונך מוגבל או שלא נוח לך בכרטיס? אפשר לשלם גם ב‑<strong>Bit</strong>, ב<strong>העברה בנקאית</strong> או <strong>במשרד</strong> — {' '}
+              <a className="pay-contact" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('שלום, אני רוצה להסדיר תשלום עבור הכנת טפסים (Bit / העברה / במשרד)')}`} target="_blank" rel="noreferrer noopener">צרו קשר בוואטסאפ ונסדיר</a> או בטלפון 052-661-1866.
+            </p>
+          </div>
           <p className="pricing-note">* עמלת ההצלחה (25% + מע״מ) ותעריפי הטפסים כפופים לאישור עורך הדין ולהסכם שכר טרחה חתום. המחירים להמחשה וניתנים לעדכון.</p>
         </section>
 
