@@ -177,7 +177,7 @@ const formLinksByLabel: Record<string, { t: string; u: string }[]> = {
 const generalForms = [{ t: 'רשות האכיפה והגבייה (הוצאה לפועל) — טפסים והליכים', u: ECA }]
 
 // WhatsApp — high-converting contact channel. Replace with the office's real number (intl format, no +).
-const WHATSAPP_NUMBER = '972500000000'
+const WHATSAPP_NUMBER = '972526611866'
 const WHATSAPP_MSG = encodeURIComponent('שלום, הגעתי מהאתר MyAttorney ואשמח לבדוק את המקרה שלי.')
 const getLegalSources = (text: string) => {
   const t = (text || '').toLowerCase()
@@ -755,9 +755,12 @@ function App() {
     window.localStorage.setItem(portalStorageKey, JSON.stringify(portalStateByProfile))
   }, [portalStateByProfile])
 
-  const activeProfile = clientProfiles.find((profile) => profile.id === selectedProfileId) ?? clientProfiles[0]
+  const activeProfile =
+    clientProfiles.find((profile) => profile.id === selectedProfileId) ??
+    (clientInfo
+      ? { id: selectedProfileId, name: clientInfo.name || 'לקוח', caseId: clientInfo.caseId || '', phase: 'תיק פעיל', nextAction: '', status: 'פעיל' }
+      : clientProfiles[0])
   const activePortalState = portalStateByProfile[activeProfile.id] ?? createInitialPortalState()
-  const personalPortalLink = `${window.location.origin}${window.location.pathname}?client=${activeProfile.id}#portal`
   const filteredDocuments = useMemo(() => {
     const filtered = activePortalState.documents.filter((doc) => {
       const matchesName = doc.documentName.toLowerCase().includes(documentSearchTerm.trim().toLowerCase())
@@ -2219,8 +2222,8 @@ function App() {
               נחזור אליכם בהקדם.
             </p>
             <ul className="contact-list">
-              <li>מייל: hello@myattorney.co</li>
-              <li>טלפון: +972 54 000 0000</li>
+              <li>מייל: info@my-attorney.net</li>
+              <li>טלפון: 052-661-1866</li>
               <li>שעות: ימים א'-ה', 09:00-18:00</li>
             </ul>
           </div>
@@ -2328,7 +2331,7 @@ function App() {
               <p className="client-login-sub">הזן/י את מספר התיק וקוד הגישה שקיבלת מהמשרד. אזור זה מופרד ומאובטח — פרטי הלקוחות אינם חשופים בדף הכללי.</p>
               <form onSubmit={handleClientLogin}>
                 <label>מספר תיק
-                  <input value={clientLoginForm.caseId} onChange={(e) => setClientLoginForm((f) => ({ ...f, caseId: e.target.value }))} placeholder="למשל MY-20481" />
+                  <input value={clientLoginForm.caseId} onChange={(e) => setClientLoginForm((f) => ({ ...f, caseId: e.target.value }))} placeholder="מספר התיק שקיבלת מהמשרד" />
                 </label>
                 <label>קוד גישה
                   <input type="password" value={clientLoginForm.code} onChange={(e) => setClientLoginForm((f) => ({ ...f, code: e.target.value }))} />
@@ -2345,21 +2348,8 @@ function App() {
         <section id="portal" className="section portal-section" aria-label="לוח לקוח אישי">
           <div className="section-header">
             <p className="eyebrow">לוח לקוח · {clientInfo?.name || activeProfile.name}</p>
-            <h2>הדף האישי של {activeProfile.name}</h2>
-            <p className="portal-link-hint">קישור אישי: {personalPortalLink}</p>
-          </div>
-
-          <div className="profile-switcher" aria-label="בחירת לקוח">
-            {clientProfiles.map((profile) => (
-              <button
-                key={profile.id}
-                type="button"
-                className={`profile-pill ${selectedProfileId === profile.id ? 'active' : ''}`}
-                onClick={() => setSelectedProfileId(profile.id)}
-              >
-                {profile.name}
-              </button>
-            ))}
+            <h2>הדף האישי של {clientInfo?.name || activeProfile.name}</h2>
+            <button type="button" className="bo-back-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setClientAuthed(false); setClientInfo(null); setClientLoginForm({ caseId: '', code: '', error: '', busy: false }) }}>← יציאה מהאזור האישי</button>
           </div>
 
           <div className="portal-layout">
@@ -2844,7 +2834,7 @@ function App() {
 
         <div className="footer-actions">
           <a className="primary-btn" href="tel:+972540000000">התקשר עכשיו</a>
-          <a className="secondary-btn" href="mailto:hello@myattorney.co">hello@myattorney.co</a>
+          <a className="secondary-btn" href="mailto:info@my-attorney.net">info@my-attorney.net</a>
         </div>
       </footer>
     </div>

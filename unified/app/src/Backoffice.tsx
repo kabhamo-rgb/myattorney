@@ -25,6 +25,17 @@ type Lead = {
   refund?: { estimatedOverpaid?: number }
 }
 
+type Client = {
+  profileId: string
+  caseId: string
+  name: string
+  phone?: string
+  email?: string
+  code: string
+  createdAt?: string
+  fromLeadId?: string
+}
+
 type EventItem = { id: string; title: string; date: string; type: string; done: boolean }
 type HearingDoc = { name: string; ok: boolean }
 type Hearing = { id: string; caseRef: string; date: string; court: string; docs: HearingDoc[] }
@@ -72,7 +83,7 @@ function Backoffice() {
   const [user, setUser] = useState<StaffUser | null>(null)
   const [loginData, setLoginData] = useState({ username: 'admin', pin: '' })
   const [loginError, setLoginError] = useState('')
-  const [tab, setTab] = useState<'dashboard' | 'leads' | 'refunds' | 'calendar' | 'hearings' | 'tasks' | 'audit' | 'settings'>('dashboard')
+  const [tab, setTab] = useState<'dashboard' | 'leads' | 'refunds' | 'clients' | 'calendar' | 'hearings' | 'tasks' | 'audit' | 'settings'>('dashboard')
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [events, setEvents] = useState<EventItem[]>([])
@@ -82,6 +93,7 @@ function Backoffice() {
   const [settings, setSettings] = useState<Settings>({})
   const [notice, setNotice] = useState('')
   const [overview, setOverview] = useState<any>(null)
+  const [clients, setClients] = useState<Client[]>([])
 
   const authFetch = useCallback(
     async (path: string, options: RequestInit = {}) => {
@@ -107,7 +119,7 @@ function Backoffice() {
   const refreshAll = useCallback(async () => {
     if (!token) return
     try {
-      const [l, e, h, t, a, s, ov] = await Promise.all([
+      const [l, e, h, t, a, s, ov, cl] = await Promise.all([
         authFetch('/api/leads').then((r) => r.json()),
         authFetch('/api/events').then((r) => r.json()),
         authFetch('/api/hearings').then((r) => r.json()),
@@ -115,7 +127,9 @@ function Backoffice() {
         authFetch('/api/audit?limit=80').then((r) => r.json()),
         authFetch('/api/settings').then((r) => r.json()),
         authFetch('/api/crm/overview').then((r) => r.json()).catch(() => null),
+        authFetch('/api/crm/clients').then((r) => r.json()).catch(() => null),
       ])
+      setClients(cl?.clients || [])
       setLeads(l.leads || [])
       setEvents(e.events || [])
       setHearings(h.hearings || [])
@@ -195,6 +209,45 @@ function Backoffice() {
     a.download = 'leads.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  /* ---- Client actions ---- */
+  const [clientForm, setClientForm] = useState({ name: '', phone: '', email: '' })
+  const addClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!clientForm.name.trim()) return
+    const res = await authFetch('/api/crm/clients', { method: 'POST', body: JSON.stringify(clientForm) })
+    if (res.ok) {
+      const data = await res.json()
+      setClientForm({ name: '', phone: '', email: '' })
+      await refreshAll()
+      flash(`נוצר לקוח: תיק ${data.client.caseId} · קוד ${data.client.code}`)
+    }
+  }
+  const convertLead = async (id: string) => {
+    const res = await authFetch(`/api/crm/leads/${id}/convert`, { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      await refreshAll()
+      flash(`הפנייה הומרה ללקוח: תיק ${data.client.caseId} · קוד ${data.client.code}`)
+    }
+  }
+  const regenerateCode = async (profileId: string) => {
+    const res = await authFetch(`/api/crm/clients/${profileId}/regenerate-code`, { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      await refreshAll()
+      flash(`קוד גישה חדש: ${data.client.code}`)
+    }
+  }
+  const deleteClient = async (profileId: string) => {
+    await authFetch(`/api/crm/clients/${profileId}`, { method: 'DELETE' })
+    refreshAll()
+    flash('הלקוח הוסר')
+  }
+  const copyText = (text: string) => {
+    try { navigator.clipboard?.writeText(text) } catch { /* ignore */ }
+    flash('הועתק')
   }
 
   /* ---- Event actions ---- */
@@ -307,6 +360,7 @@ function Backoffice() {
     ['dashboard', 'לוח בקרה'],
     ['leads', `פניות (${leads.length})`],
     ['refunds', `בקשות החזר (${refundLeads.length})`],
+    ['clients', `לקוחות (${clients.length})`],
     ['calendar', 'יומן'],
     ['hearings', 'דיונים'],
     ['tasks', 'משימות'],
@@ -381,7 +435,7 @@ function Backoffice() {
             </div>
             <table className="bo-table">
               <thead>
-                <tr><th>שם</th><th>טלפון</th><th>נושא</th><th>דחיפות</th><th>מקור</th><th>סטטוס</th><th>אחראי</th><th></th></tr>
+                <tr><th>שם</th><th>טלפון</th><th>נושא</th><th>דחיפות</th><th>מקור</th><th>סטטוס</th><th>אחראי</th><th></th><th></th></tr>
               </thead>
               <tbody>
                 {leads.map((l) => (
@@ -399,10 +453,11 @@ function Backoffice() {
                     <td>
                       <input className="bo-owner" defaultValue={l.owner || ''} onBlur={(e) => e.target.value !== (l.owner || '') && updateLead(l.id, { owner: e.target.value })} placeholder="שיוך" />
                     </td>
+                    <td><button className="bo-btn bo-btn-ghost" onClick={() => convertLead(l.id)} title="צור לקוח עם קוד גישה">→ לקוח</button></td>
                     <td><button className="bo-btn-x" onClick={() => deleteLead(l.id)}>✕</button></td>
                   </tr>
                 ))}
-                {leads.length === 0 && <tr><td colSpan={8} className="bo-empty">אין פניות עדיין</td></tr>}
+                {leads.length === 0 && <tr><td colSpan={9} className="bo-empty">אין פניות עדיין</td></tr>}
               </tbody>
             </table>
           </section>
@@ -438,6 +493,49 @@ function Backoffice() {
                   </tr>
                 ))}
                 {refundLeads.length === 0 && <tr><td colSpan={7} className="bo-empty">אין בקשות החזר עדיין</td></tr>}
+              </tbody>
+            </table>
+          </section>
+        )}
+
+        {tab === 'clients' && (
+          <section>
+            <div className="bo-section-head">
+              <h2>לקוחות — קודי גישה לאזור האישי 🔐</h2>
+              <span className="bo-badge">{clients.length} לקוחות פעילים</span>
+            </div>
+            <p className="bo-login-hint" style={{ marginBottom: 14 }}>
+              יצירת לקוח מפיקה <strong>מספר תיק</strong> ו<strong>קוד גישה מאובטח</strong> אקראי. מסרו ללקוח את שני הפרטים — איתם הוא נכנס לאזור האישי (#client). ניתן להפיק קוד חדש בכל עת.
+            </p>
+            <form className="bo-inline-form" onSubmit={addClient}>
+              <input value={clientForm.name} onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })} placeholder="שם הלקוח *" />
+              <input value={clientForm.phone} onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })} placeholder="טלפון" />
+              <input value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="אימייל" />
+              <button className="bo-btn bo-btn-primary" type="submit">+ צור לקוח וקוד גישה</button>
+            </form>
+            <table className="bo-table">
+              <thead>
+                <tr><th>שם</th><th>מספר תיק</th><th>קוד גישה</th><th>טלפון</th><th>נוצר</th><th></th><th></th></tr>
+              </thead>
+              <tbody>
+                {clients.map((c) => (
+                  <tr key={c.profileId}>
+                    <td>{c.name}</td>
+                    <td>
+                      <code>{c.caseId}</code>{' '}
+                      <button className="bo-btn-x" title="העתק" onClick={() => copyText(c.caseId)}>⧉</button>
+                    </td>
+                    <td>
+                      <code style={{ fontWeight: 700, letterSpacing: '0.05em' }}>{c.code}</code>{' '}
+                      <button className="bo-btn-x" title="העתק" onClick={() => copyText(c.code)}>⧉</button>
+                    </td>
+                    <td>{c.phone || c.email || '-'}</td>
+                    <td className="bo-date">{fmtDate(c.createdAt)}</td>
+                    <td><button className="bo-btn bo-btn-ghost" onClick={() => regenerateCode(c.profileId)} title="הפק קוד גישה חדש">קוד חדש</button></td>
+                    <td><button className="bo-btn-x" onClick={() => deleteClient(c.profileId)}>✕</button></td>
+                  </tr>
+                ))}
+                {clients.length === 0 && <tr><td colSpan={7} className="bo-empty">עדיין אין לקוחות — צרו לקוח ראשון למעלה, או המירו פנייה מלשונית "פניות"</td></tr>}
               </tbody>
             </table>
           </section>
