@@ -203,6 +203,11 @@ const upload = multer({ storage })
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'myattorney-unified' }))
 
+// Google Search Console site verification (served directly — robust to file-name issues).
+app.get('/googlee0d6249170549ef6.html', (_req, res) =>
+  res.type('text/html').send('google-site-verification: googlee0d6249170549ef6.html'),
+)
+
 // Diagnostic: which AI provider is configured (never exposes the key).
 app.get('/api/ai-status', (_req, res) => {
   const provider = process.env.GEMINI_API_KEY
@@ -543,6 +548,26 @@ app.post('/api/refund-requests', (req, res) => {
   const current = load('leads', [])
   save('leads', [lead, ...current])
   appendAudit({ area: 'leads', action: 'refund_request', actor: 'public', detail: `${lead.name} | החזר עיקול${lead.refund.estimatedOverpaid ? ` | ~₪${lead.refund.estimatedOverpaid}` : ''}`, refId: lead.id })
+  // Best-effort notifications (activate by setting RESEND_API_KEY).
+  const est = lead.refund.estimatedOverpaid ? `~₪${Number(lead.refund.estimatedOverpaid).toLocaleString('he-IL')}` : 'לא צוין'
+  sendEmail(OFFICE_EMAIL, `בקשת החזר/הרשאה חדשה — ${lead.name}`,
+    `<div dir="rtl" style="font-family:Arial">
+      <h3>בקשת החזר/הרשאה חדשה</h3>
+      <p><b>שם:</b> ${escapeHtml(lead.name)}<br><b>ת"ז:</b> ${escapeHtml(lead.idNumber || '-')}<br>
+      <b>טלפון:</b> ${escapeHtml(lead.phone || '-')}<br><b>מייל:</b> ${escapeHtml(lead.email || '-')}<br>
+      <b>הערכת החזר:</b> ${est}<br><b>ייפוי כוח:</b> ${lead.powerOfAttorney ? 'כן ✓' : 'לא'} · <b>הצהרה:</b> ${lead.truthDeclared ? 'כן ✓' : 'לא'} · <b>חתימה:</b> ${lead.signature ? 'התקבלה ✓' : 'אין'}<br>
+      <b>מספר פנייה:</b> ${lead.id}</p>
+    </div>`).catch(() => {})
+  if (lead.email) {
+    sendEmail(lead.email, 'קיבלנו את בקשתך — משרד עורכי דין מוחמד קבהא',
+      `<div dir="rtl" style="font-family:Arial">
+        <h3>שלום ${escapeHtml(lead.name)},</h3>
+        <p>קיבלנו את הבקשה וההרשאה שלך לטיפול בעניין השבת כספים שנגבו ביתר. נציג מהמשרד יחזור אליך בהקדם.</p>
+        <p><b>מספר פנייה:</b> ${lead.id}</p>
+        <p>הבדיקה חינם; שכר טרחה של 25% + מע״מ ייגבה רק אם וכאשר יתקבל החזר בפועל.</p>
+        <p>משרד עורכי דין מוחמד מ. קבהא · מ.ר 67912 · 052-661-1866 · info@my-attorney.net</p>
+      </div>`).catch(() => {})
+  }
   res.status(201).json({ success: true, id: lead.id })
 })
 
@@ -647,6 +672,27 @@ async function sendSms(_phone, _text) {
   if (!SMS_ENABLED) return false
   // TODO: integrate an SMS provider (e.g. 019SMS / InforU / Twilio) using env vars.
   return false
+}
+
+// Email hook — activates when RESEND_API_KEY is set (https://resend.com, free tier).
+const EMAIL_ENABLED = !!process.env.RESEND_API_KEY
+const MAIL_FROM = process.env.MAIL_FROM || 'My-Attorney <info@my-attorney.net>'
+const OFFICE_EMAIL = process.env.OFFICE_EMAIL || 'info@my-attorney.net'
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+async function sendEmail(to, subject, html) {
+  if (!EMAIL_ENABLED || !to) return false
+  try {
+    const r = await fetchWithTimeout('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: MAIL_FROM, to: [to], subject, html }),
+    }, 10000)
+    return r.ok
+  } catch {
+    return false
+  }
 }
 
 // Phone OTP: request a code (test mode returns it on screen until SMS provider is wired).
