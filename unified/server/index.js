@@ -593,6 +593,132 @@ app.post('/api/client/login', (req, res) => {
   res.json({ token, profileId: client.profileId, name: client.name, caseId: client.caseId })
 })
 
+/* -------- Quick login helpers (phone OTP + Google) -------- */
+// Normalize an Israeli phone to its 9 significant digits (drop +972 / leading 0).
+function phoneKey(p) {
+  let d = String(p || '').replace(/\D/g, '')
+  if (d.startsWith('972')) d = d.slice(3)
+  return d.replace(/^0+/, '').slice(-9)
+}
+function issueClientSession(res, client, via, isNew) {
+  const token = crypto.randomBytes(20).toString('hex')
+  clientSessions.set(token, { profileId: client.profileId, expiresAt: Date.now() + 60 * 60 * 1000 })
+  appendAudit({ area: 'client', action: 'client_login', actor: 'client', profileId: client.profileId, detail: `${client.name} (${via})` })
+  res.json({ token, profileId: client.profileId, name: client.name, caseId: client.caseId, isNew: !!isNew, ...(isNew ? { code: client.code } : {}) })
+}
+
+// Self-registration: auto-create a CRM client (case number + access code) on first login.
+function createClientAuto({ name, phone, email }) {
+  const f = path.join(dataDir, 'clients.json')
+  const clients = readJson(f, [])
+  const digits = String(phone || '').replace(/\D/g, '')
+  const client = {
+    profileId: genProfileId(),
+    caseId: genCaseId(),
+    name: (name && String(name).trim()) || (digits ? 'לקוח ' + digits.slice(-4) : 'לקוח חדש'),
+    phone: String(phone || '').trim(),
+    email: String(email || '').trim(),
+    code: genAccessCode(),
+    createdAt: new Date().toISOString(),
+    selfRegistered: true,
+  }
+  clients.unshift(client)
+  writeJson(f, clients)
+  appendAudit({ area: 'client', action: 'client_selfregister', actor: 'client', profileId: client.profileId, detail: `${client.name} | ${client.caseId}` })
+  return client
+}
+
+// SMS provider hook — wire a real provider later via env vars. Returns true if actually sent.
+const SMS_ENABLED = !!process.env.SMS_API_KEY
+async function sendSms(_phone, _text) {
+  if (!SMS_ENABLED) return false
+  // TODO: integrate an SMS provider (e.g. 019SMS / InforU / Twilio) using env vars.
+  return false
+}
+
+// Phone OTP: request a code (test mode returns it on screen until SMS provider is wired).
+const otpStore = new Map() // phoneKey -> { code, expiresAt, profileId }
+app.post('/api/client/otp/request', async (req, res) => {
+  const key = phoneKey(req.body && req.body.phone)
+  if (key.length < 8) {
+    res.status(400).json({ error: 'מספר טלפון לא תקין' })
+    return
+  }
+  const clients = readJson(path.join(dataDir, 'clients.json'), [])
+  const client = clients.find((c) => phoneKey(c.phone) === key)
+  const code = String(crypto.randomInt(100000, 1000000))
+  otpStore.set(key, {
+    code,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+    profileId: client ? client.profileId : null,
+    phone: (req.body && req.body.phone) || '',
+    name: (req.body && req.body.name) || '',
+  })
+  appendAudit({ area: 'client', action: 'otp_request', actor: 'client', profileId: client ? client.profileId : undefined, detail: client ? client.name : `חדש: ${key}` })
+  const sent = await sendSms((client && client.phone) || (req.body && req.body.phone), `קוד הכניסה שלך ל-My-Attorney: ${code}`)
+  // Test mode: expose the code on screen (no SMS provider yet).
+  res.json({ sent: true, testMode: !sent, ...(sent ? {} : { devCode: code }) })
+})
+
+app.post('/api/client/otp/verify', (req, res) => {
+  const key = phoneKey(req.body && req.body.phone)
+  const rec = otpStore.get(key)
+  if (!rec || rec.expiresAt < Date.now()) {
+    res.status(401).json({ error: 'הקוד פג תוקף — בקש/י קוד חדש' })
+    return
+  }
+  if (String((req.body && req.body.code) || '').trim() !== rec.code) {
+    res.status(401).json({ error: 'קוד שגוי' })
+    return
+  }
+  otpStore.delete(key)
+  const clients = readJson(path.join(dataDir, 'clients.json'), [])
+  let client = rec.profileId ? clients.find((c) => c.profileId === rec.profileId) : null
+  let isNew = false
+  if (!client) {
+    client = createClientAuto({ name: rec.name, phone: rec.phone || (req.body && req.body.phone), email: '' })
+    isNew = true
+  }
+  issueClientSession(res, client, isNew ? 'טלפון · חדש' : 'טלפון', isNew)
+})
+
+// Google Sign-In: verify the ID token with Google, match by verified email.
+app.post('/api/client/google', async (req, res) => {
+  const credential = req.body && req.body.credential
+  if (!credential) {
+    res.status(400).json({ error: 'חסר טוקן Google' })
+    return
+  }
+  try {
+    const r = await fetchWithTimeout(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`, {}, 10000)
+    const info = await r.json()
+    if (process.env.GOOGLE_CLIENT_ID && info.aud !== process.env.GOOGLE_CLIENT_ID) {
+      res.status(401).json({ error: 'טוקן Google לא תואם' })
+      return
+    }
+    const email = String(info.email || '').toLowerCase()
+    if (!email || info.email_verified === 'false') {
+      res.status(401).json({ error: 'מייל Google לא מאומת' })
+      return
+    }
+    const clients = readJson(path.join(dataDir, 'clients.json'), [])
+    let client = clients.find((c) => String(c.email || '').toLowerCase() === email)
+    let isNew = false
+    if (!client) {
+      client = createClientAuto({ name: info.name, phone: '', email })
+      isNew = true
+    }
+    issueClientSession(res, client, isNew ? 'Google · חדש' : 'Google', isNew)
+  } catch {
+    res.status(500).json({ error: 'אימות Google נכשל' })
+  }
+})
+
+// Public runtime config for the frontend (safe, non-secret values only).
+app.get('/api/public-config', (_req, res) => {
+  res.json({ googleClientId: process.env.GOOGLE_CLIENT_ID || '' })
+})
+
 /* ===================== PUBLIC: Stripe checkout ================== */
 // Canonical price list (server-side, in ILS) — never trust client amounts.
 const PRICING = {
