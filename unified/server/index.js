@@ -535,23 +535,52 @@ app.post('/api/refund-requests', (req, res) => {
 
 /* ===================== CLIENT: private area login =============== */
 // Separate, gated client login (kept fully apart from the public site + admin).
+// Demo records that must never survive into production (backdoor risk).
+const DEMO_CLIENT_CASEIDS = ['MY-20481', 'MY-20492', 'MY-20510']
+const DEMO_CLIENT_CODES = ['2481', '2492', '2510']
 const seedClients = () => {
   const f = path.join(dataDir, 'clients.json')
   if (!fs.existsSync(f)) {
-    writeJson(f, [
-      { profileId: 'oren', caseId: 'MY-20481', name: 'אורן לוי', code: '2481' },
-      { profileId: 'liya', caseId: 'MY-20492', name: 'ליה כהן', code: '2492' },
-      { profileId: 'daniel', caseId: 'MY-20510', name: 'דניאל רז', code: '2510' },
-    ])
+    // Production starts with NO clients — real clients are created via the CRM.
+    writeJson(f, [])
+    return
   }
+  // One-time purge: remove the old demo clients left on the persistent volume.
+  const existing = readJson(f, [])
+  const cleaned = existing.filter(
+    (c) => !(DEMO_CLIENT_CASEIDS.includes(c.caseId) && DEMO_CLIENT_CODES.includes(String(c.code))),
+  )
+  if (cleaned.length !== existing.length) writeJson(f, cleaned)
 }
 seedClients()
+
+// ---- Client identity generators (real, non-guessable) ----
+function genProfileId() {
+  return 'c_' + crypto.randomBytes(5).toString('hex')
+}
+function genCaseId() {
+  const clients = readJson(path.join(dataDir, 'clients.json'), [])
+  let max = 20500
+  for (const c of clients) {
+    const m = String(c.caseId || '').match(/(\d{4,})/)
+    if (m) max = Math.max(max, parseInt(m[1], 10))
+  }
+  return 'MY-' + (max + 1)
+}
+function genAccessCode() {
+  // 8 chars, unambiguous alphabet (no 0/O/1/I/L) — safe to read out to a client.
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  const bytes = crypto.randomBytes(8)
+  let out = ''
+  for (let i = 0; i < 8; i++) out += alphabet[bytes[i] % alphabet.length]
+  return out
+}
 const clientSessions = new Map()
 app.post('/api/client/login', (req, res) => {
   const { caseId, code } = req.body || {}
   const clients = readJson(path.join(dataDir, 'clients.json'), [])
   const client = clients.find(
-    (c) => String(c.caseId).toLowerCase() === String(caseId || '').trim().toLowerCase() && String(c.code) === String(code || '').trim(),
+    (c) => String(c.caseId).toLowerCase() === String(caseId || '').trim().toLowerCase() && String(c.code).toUpperCase() === String(code || '').trim().toUpperCase(),
   )
   if (!client) {
     appendAudit({ area: 'client', action: 'client_login_failed', actor: 'client', detail: String(caseId || '') })
@@ -729,6 +758,92 @@ app.delete('/api/leads/:id', requireStaff, (req, res) => {
   }
   save('leads', leads.filter((l) => l.id !== id))
   appendAudit({ area: 'leads', action: 'lead_deleted', actor: req.staff.username, detail: target.name, refId: id })
+  res.json({ success: true })
+})
+
+/* ===================== STAFF: client management ================ */
+// Real clients (with access codes) — created here, never seeded as demo.
+app.get('/api/crm/clients', requireStaff, (_req, res) => {
+  const clients = readJson(path.join(dataDir, 'clients.json'), [])
+  res.json({ clients })
+})
+
+app.post('/api/crm/clients', requireStaff, (req, res) => {
+  const { name, phone, email } = req.body || {}
+  if (!name || !String(name).trim()) {
+    res.status(400).json({ error: 'נדרש שם לקוח' })
+    return
+  }
+  const f = path.join(dataDir, 'clients.json')
+  const clients = readJson(f, [])
+  const client = {
+    profileId: genProfileId(),
+    caseId: genCaseId(),
+    name: String(name).trim(),
+    phone: String(phone || '').trim(),
+    email: String(email || '').trim(),
+    code: genAccessCode(),
+    createdAt: new Date().toISOString(),
+  }
+  clients.unshift(client)
+  writeJson(f, clients)
+  appendAudit({ area: 'client', action: 'client_created', actor: req.staff.username, profileId: client.profileId, detail: `${client.name} | ${client.caseId}` })
+  res.status(201).json({ client })
+})
+
+// Convert an existing lead into a client (creates access code, marks lead booked).
+app.post('/api/crm/leads/:id/convert', requireStaff, (req, res) => {
+  const leads = load('leads', [])
+  const lead = leads.find((l) => l.id === req.params.id)
+  if (!lead) {
+    res.status(404).json({ error: 'פנייה לא נמצאה' })
+    return
+  }
+  const f = path.join(dataDir, 'clients.json')
+  const clients = readJson(f, [])
+  const client = {
+    profileId: genProfileId(),
+    caseId: genCaseId(),
+    name: lead.name,
+    phone: lead.phone || '',
+    email: lead.email || '',
+    code: genAccessCode(),
+    createdAt: new Date().toISOString(),
+    fromLeadId: lead.id,
+  }
+  clients.unshift(client)
+  writeJson(f, clients)
+  lead.status = 'booked'
+  save('leads', leads)
+  appendAudit({ area: 'client', action: 'client_converted', actor: req.staff.username, profileId: client.profileId, detail: `${client.name} | ${client.caseId}` })
+  res.status(201).json({ client })
+})
+
+app.post('/api/crm/clients/:profileId/regenerate-code', requireStaff, (req, res) => {
+  const f = path.join(dataDir, 'clients.json')
+  const clients = readJson(f, [])
+  const client = clients.find((c) => c.profileId === req.params.profileId)
+  if (!client) {
+    res.status(404).json({ error: 'לקוח לא נמצא' })
+    return
+  }
+  client.code = genAccessCode()
+  writeJson(f, clients)
+  appendAudit({ area: 'client', action: 'client_code_regenerated', actor: req.staff.username, profileId: client.profileId, detail: client.name })
+  res.json({ client })
+})
+
+app.delete('/api/crm/clients/:profileId', requireStaff, (req, res) => {
+  const f = path.join(dataDir, 'clients.json')
+  const clients = readJson(f, [])
+  const idx = clients.findIndex((c) => c.profileId === req.params.profileId)
+  if (idx === -1) {
+    res.status(404).json({ error: 'לקוח לא נמצא' })
+    return
+  }
+  const [removed] = clients.splice(idx, 1)
+  writeJson(f, clients)
+  appendAudit({ area: 'client', action: 'client_deleted', actor: req.staff.username, profileId: removed.profileId, detail: removed.name })
   res.json({ success: true })
 })
 
