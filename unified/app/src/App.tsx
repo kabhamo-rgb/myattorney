@@ -2361,8 +2361,8 @@ function App() {
             {heroTab === 'garnish' && garnishResult && (
               <div className="review-result garnish-result" aria-live="polite">
                 <div className="report-header">
-                  <h3>{garnishResult.title}</h3>
-                  <span className="risk-pill">{garnishResult.riskLevel}</span>
+                  <h3>🧮 {garnishResult.title}</h3>
+                  <span className={`risk-pill risk-${garnishResult.riskLevel}`}>{garnishResult.riskLevel}</span>
                 </div>
                 {garnishResult.estimatedOverpaid > 0 && (
                   <div className="overpaid-banner">
