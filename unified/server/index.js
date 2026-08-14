@@ -205,7 +205,11 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       event = JSON.parse(req.body.toString('utf8'))
     }
     if (event.type === 'checkout.session.completed') {
-      const s = event.data.object || {}
+      let s = event.data.object || {}
+      // Thin/partial payloads: fetch the full session so we have email/amount/metadata.
+      if ((!s.customer_details || s.amount_total == null) && s.id) {
+        try { s = await stripe.checkout.sessions.retrieve(s.id) } catch { /* keep partial */ }
+      }
       const email = (s.customer_details && s.customer_details.email) || ''
       const name = (s.customer_details && s.customer_details.name) || ''
       const amount = (s.amount_total || 0) / 100
@@ -739,16 +743,42 @@ async function sendEmail(to, subject, html) {
   }
 }
 
-// Digital invoice hook — issues a tax-compliant חשבונית מס/קבלה via an Israeli provider.
-// Activates when INVOICE_API_KEY is set. Returns { docId, url } or null.
-const INVOICE_ENABLED = !!process.env.INVOICE_API_KEY
+// Digital invoice hook — Morning / חשבונית ירוקה (greeninvoice).
+// Issues a חשבונית מס/קבלה (type 320); the allocation number (מספר הקצאה) is handled
+// by the Morning account when connected to the Tax Authority.
+// Activates when MORNING_KEY_ID + MORNING_KEY_SECRET are set. Returns { docId, url } or null.
 async function issueInvoice({ name, email, amount, description }) {
-  if (!INVOICE_ENABLED) return null
-  // TODO: integrate the office's Israeli invoicing provider (Morning/חשבונית ירוקה,
-  // iCount, EZcount) to create a חשבונית מס/קבלה (with allocation number / מספר הקצאה)
-  // and return its { docId, url }. Wired once the provider + API key are chosen.
-  void name; void email; void amount; void description
-  return null
+  const id = process.env.MORNING_KEY_ID
+  const secret = process.env.MORNING_KEY_SECRET
+  if (!id || !secret) return null
+  try {
+    const tr = await fetchWithTimeout('https://api.greeninvoice.co.il/api/v1/account/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, secret }),
+    }, 10000)
+    const tj = await tr.json()
+    const token = tj && tj.token
+    if (!token) return null
+    const dr = await fetchWithTimeout('https://api.greeninvoice.co.il/api/v1/documents', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        type: 320, // חשבונית מס/קבלה
+        lang: 'he',
+        currency: 'ILS',
+        client: { name: name || email || 'לקוח', emails: email ? [email] : [] },
+        income: [{ description: description || 'שירות משפטי', quantity: 1, price: Number(amount) || 0, vatType: 0 }],
+        remarks: 'תשלום עבור שירותי הכנת טפסים — משרד עו״ד מוחמד מ. קבהא',
+      }),
+    }, 12000)
+    const dj = await dr.json()
+    if (dr.ok && dj && (dj.id || dj.url)) {
+      const url = dj.url && (dj.url.he || dj.url.origin || dj.url.en) ? (dj.url.he || dj.url.origin || dj.url.en) : ''
+      return { docId: dj.id || String(dj.number || ''), url }
+    }
+    return null
+  } catch {
+    return null
+  }
 }
 
 // Phone OTP: request a code (test mode returns it on screen until SMS provider is wired).
