@@ -58,6 +58,24 @@
   font-family: inherit;
   background: #fff;
 }
+
+/* Force readable dark text in ALL back-office fields (override public-site theme leak) */
+.bo-shell input,
+.bo-shell select,
+.bo-shell textarea,
+.bo-login-shell input,
+.bo-login-shell select {
+  color: var(--bo-ink);
+  background: #fff;
+  -webkit-text-fill-color: var(--bo-ink);
+}
+.bo-shell input::placeholder,
+.bo-shell textarea::placeholder,
+.bo-login-shell input::placeholder {
+  color: var(--bo-muted);
+  -webkit-text-fill-color: var(--bo-muted);
+  opacity: 1;
+}
 .bo-login-hint { font-size: 12px; color: var(--bo-muted); margin-top: 14px; }
 .bo-back-link { display: inline-block; margin-top: 8px; color: var(--bo-primary); font-size: 13px; text-decoration: none; }
 .bo-error { color: var(--bo-danger); font-size: 14px; margin: 4px 0 12px; }
