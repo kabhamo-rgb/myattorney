@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://www.my-attorney.net/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://www.my-attorney.net/madrich-ikul.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
+  <url><loc>https://www.my-attorney.net/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.my-attorney.net/madrich-ikul.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.my-attorney.net/ikul-cheshbon-bank.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.my-attorney.net/ikul-mascoret.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.my-attorney.net/taanat-pareti.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>
