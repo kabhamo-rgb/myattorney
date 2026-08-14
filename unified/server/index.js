@@ -492,7 +492,7 @@ ${(docText || '(לא חולץ טקסט מהמסמך)').slice(0, 12000)}`
 // Registered + consented request that the FIRM handles. Does not file anything
 // with any authority automatically. Stored as a lead so staff can act on it.
 app.post('/api/refund-requests', (req, res) => {
-  const { fullName, idNumber, phone, email, consent, details } = req.body || {}
+  const { fullName, idNumber, phone, email, consent, truthDeclared, powerOfAttorney, attorney, feeAgreement, signature, details } = req.body || {}
   if (!fullName || !(phone || email)) {
     res.status(400).json({ error: 'נדרש שם מלא וטלפון או דוא"ל' })
     return
@@ -504,6 +504,9 @@ app.post('/api/refund-requests', (req, res) => {
   const now = new Date().toISOString()
   const snapshot = details && typeof details === 'object' ? details : {}
   const summaryLine = snapshot.summary ? String(snapshot.summary) : 'בקשת בדיקת החזר עיקול'
+  // Electronic signature: accept a small PNG data-URL only.
+  const sig = typeof signature === 'string' && /^data:image\/png;base64,/.test(signature) && signature.length < 400000 ? signature : ''
+  const signerIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim()
   const lead = {
     id: genId('refund'),
     type: 'refund',
@@ -522,6 +525,15 @@ app.post('/api/refund-requests', (req, res) => {
       verdict: snapshot.verdict ?? null,
     },
     consentAt: now,
+    truthDeclared: !!truthDeclared,
+    truthDeclaredAt: truthDeclared ? now : null,
+    powerOfAttorney: !!powerOfAttorney,
+    attorney: String(attorney || 'עו״ד מוחמד מ׳ קבהא, מ.ר 67912'),
+    feeAgreement: String(feeAgreement || '25%+VAT success-fee, no win no fee'),
+    feeAgreedAt: now,
+    signature: sig,
+    signedAt: sig ? now : null,
+    signerIp: sig ? signerIp : null,
     status: 'new',
     owner: '',
     source: 'בקשת החזר',
