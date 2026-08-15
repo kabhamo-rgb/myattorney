@@ -602,7 +602,7 @@ app.get('/api/legal-sources', (_req, res) => {
 // Registered + consented request that the FIRM handles. Does not file anything
 // with any authority automatically. Stored as a lead so staff can act on it.
 app.post('/api/refund-requests', (req, res) => {
-  const { fullName, idNumber, phone, email, consent, truthDeclared, powerOfAttorney, attorney, feeAgreement, signature, details } = req.body || {}
+  const { fullName, idNumber, phone, email, consent, feeConsent, truthDeclared, powerOfAttorney, privacyConsent, agreementVersion, consentTextsSigned, attorney, feeAgreement, signature, details } = req.body || {}
   if (!fullName || !(phone || email)) {
     res.status(400).json({ error: 'נדרש שם מלא וטלפון או דוא"ל' })
     return
@@ -617,6 +617,8 @@ app.post('/api/refund-requests', (req, res) => {
   // Electronic signature: accept a small PNG data-URL only.
   const sig = typeof signature === 'string' && /^data:image\/png;base64,/.test(signature) && signature.length < 400000 ? signature : ''
   const signerIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim()
+  const signatureHash = sig ? crypto.createHash('sha256').update(sig).digest('hex') : null
+  const userAgent = (req.headers['user-agent'] || '').toString().slice(0, 300)
   const lead = {
     id: genId('refund'),
     type: 'refund',
@@ -635,15 +637,23 @@ app.post('/api/refund-requests', (req, res) => {
       verdict: snapshot.verdict ?? null,
     },
     consentAt: now,
+    // Separate, individually-recorded consents (audit-friendly)
+    feeConsent: !!(feeConsent ?? consent),
+    powerOfAttorney: !!powerOfAttorney,
     truthDeclared: !!truthDeclared,
     truthDeclaredAt: truthDeclared ? now : null,
-    powerOfAttorney: !!powerOfAttorney,
+    privacyConsent: !!privacyConsent,
+    agreementVersion: String(agreementVersion || ''),
+    consentTexts: consentTextsSigned && typeof consentTextsSigned === 'object' ? consentTextsSigned : null,
     attorney: String(attorney || 'עו״ד מוחמד מ׳ קבהא, מ.ר 67912'),
     feeAgreement: String(feeAgreement || '25%+VAT success-fee, no win no fee'),
     feeAgreedAt: now,
+    // Electronic signature evidence bundle
     signature: sig,
     signedAt: sig ? now : null,
     signerIp: sig ? signerIp : null,
+    signatureHash: signatureHash,
+    signerUserAgent: sig ? userAgent : null,
     status: 'new',
     owner: '',
     source: 'בקשת החזר',
