@@ -1570,6 +1570,35 @@ function App() {
     runAiAnalysis({ question: legalQuestion })
   }
 
+  // Topic checks — each added service is a one-click check that opens the question
+  // flow pre-filled with a focused prompt and runs the immediate + AI assessment.
+  const topicChecks = [
+    { icon: '✉️', label: __t("קיבלתי מכתב מההוצל״פ"), q: __t("קיבלתי מכתב או אזהרה מההוצאה לפועל. אני רוצה להבין מה סוג ההליך, מה המשמעות, מה המועד לתגובה ומה עליי לעשות עכשיו.") },
+    { icon: '💼', label: __t("פוטרתי / זומנתי לשימוע"), q: __t("פוטרתי מהעבודה או זומנתי לשימוע. מהן זכויותיי בהליך, מה חשוב לומר ולתעד, ומה לבדוק לפני סיום ההעסקה?") },
+    { icon: '⚖️', label: __t("זכויות עובדים"), q: __t("אני רוצה לבדוק את זכויותיי כעובד: שכר, שעות נוספות, דמי הבראה, פנסיה, חופשה ומחלה ותלושי שכר. מה מגיע לי ומה כדאי לבדוק?") },
+    { icon: '💰', label: __t("עיקול משכורת"), q: __t("עוקלה לי המשכורת. כמה מותר לעקל לפי החוק, מהו הסכום המוגן, והאם עוקל לי יותר מהמותר?") },
+    { icon: '⏱️', label: __t("מועדים בהוצל״פ"), q: __t("אני רוצה לבדוק מועדים בתיק הוצאה לפועל: חלון להגשת התנגדות, תקופות התיישנות, ומתי צעד בהליך פוקע.") },
+    { icon: '🧾', label: __t("הלנת שכר"), q: __t("לא קיבלתי את שכרי בזמן, בחלקו או בכלל. האם מגיע לי פיצויי הלנת שכר וכיצד גובים מהמעסיק?") },
+    { icon: '🛡️', label: __t("פיטורים בתקופה מוגנת"), q: __t("פוטרתי בתקופה מוגנת (היריון, לידה, טיפולי פוריות או מילואים). האם הפיטורים חוקיים ומה הסעדים האפשריים?") },
+    { icon: '📁', label: __t("זכויות בסיום העסקה"), q: __t("סיימתי עבודה. מה מגיע לי — פיצויי פיטורים, הודעה מוקדמת, ניכויים והחזרים?") },
+  ]
+
+  const runTopicCheck = (prompt: string) => {
+    setHeroTab('question')
+    setLegalQuestion(prompt)
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('legal-tool')
+      if (el) el.scrollIntoView({ behavior: 'smooth' })
+    }
+    if (!consent) { setShowConsent(true); return }
+    if (!ensureAuth()) return
+    setIsCheckingQuestion(true)
+    setReviewResult(buildImmediateQuestionAssessment(prompt))
+    setLookupSources(getLegalSources(prompt))
+    setIsCheckingQuestion(false)
+    runAiAnalysis({ question: prompt })
+  }
+
   const startLiensCheck = () => {
     setHeroTab('garnish')
     if (typeof document !== 'undefined') {
@@ -2450,6 +2479,18 @@ function App() {
               <button type="button" role="tab" className={heroTab === 'garnish' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('garnish')}>{__t("🧮 בדיקת עיקול")}</button>
               <button type="button" role="tab" className={heroTab === 'document' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('document')}>{__t("📄 בדיקת מסמך")}</button>
               <button type="button" role="tab" className={heroTab === 'question' ? 'tool-tab active' : 'tool-tab'} onClick={() => setHeroTab('question')}>{__t("⚖️ שאלה")}</button>
+            </div>
+
+            <div className="tool-topics">
+              <span className="tool-topics-label">{__t("בדיקות מהירות לפי נושא")}</span>
+              <div className="tool-topics-grid">
+                {topicChecks.map((tc) => (
+                  <button type="button" key={tc.label} className="tool-topic-btn" onClick={() => runTopicCheck(tc.q)}>
+                    <span className="tool-topic-ico" aria-hidden="true">{tc.icon}</span>
+                    <span>{tc.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {heroTab === 'document' && (
