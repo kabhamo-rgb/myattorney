@@ -1,11 +1,11 @@
 :root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.5;
+  font-family: 'Assistant', 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  line-height: 1.55;
   font-weight: 400;
-  color: #e2e8f0;
+  color: #e6edf4;
   background:
-    radial-gradient(circle at top, rgba(212, 175, 95, 0.12), transparent 20%),
-    linear-gradient(180deg, #08121b 0%, #0b1724 50%, #0d1b2a 100%);
+    radial-gradient(circle at top, rgba(180, 136, 77, 0.14), transparent 22%),
+    linear-gradient(180deg, #0E2438 0%, #16324F 55%, #1E4A6B 100%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

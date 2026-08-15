@@ -14,9 +14,9 @@
   justify-content: space-between;
   gap: 20px;
   padding: 18px 26px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid rgba(180, 136, 77, 0.22);
   border-radius: 22px;
-  background: rgba(15, 23, 42, 0.82);
+  background: rgba(14, 36, 56, 0.86);
   backdrop-filter: blur(10px);
   position: sticky;
   top: 16px;
@@ -35,7 +35,7 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #d4af5f, #f0d69a);
+  background: linear-gradient(135deg, #b4884d, #d9bd86);
   color: #08141f;
   font-weight: 800;
   font-size: 1.2rem;
@@ -87,14 +87,14 @@
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, #d4af5f, #f2d089);
+  background: linear-gradient(135deg, #b4884d, #cca25f);
   color: #0b1724;
-  box-shadow: 0 18px 30px rgba(212, 175, 95, 0.3);
+  box-shadow: 0 18px 30px rgba(180, 136, 77, 0.3);
 }
 
 .secondary-btn {
   background: transparent;
-  border-color: rgba(212, 175, 95, 0.5);
+  border-color: rgba(180, 136, 77, 0.5);
   color: #f8fafc;
 }
 
@@ -118,7 +118,7 @@
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.72rem;
-  color: #d4af5f;
+  color: #b4884d;
   font-weight: 700;
 }
 
@@ -173,9 +173,9 @@
   justify-content: center;
   padding: 0.45rem 0.8rem;
   border-radius: 999px;
-  background: rgba(212, 175, 95, 0.12);
-  border: 1px solid rgba(212, 175, 95, 0.25);
-  color: #f2d089;
+  background: rgba(180, 136, 77, 0.12);
+  border: 1px solid rgba(180, 136, 77, 0.25);
+  color: #cca25f;
   font-size: 0.76rem;
   font-weight: 700;
 }
@@ -202,7 +202,7 @@
 
 .panel-label {
   margin: 0 0 10px;
-  color: #d4af5f;
+  color: #b4884d;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -248,7 +248,7 @@
   inset: 0 auto 0 0;
   width: 92%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #d4af5f, #f2d089);
+  background: linear-gradient(90deg, #b4884d, #cca25f);
 }
 
 .card-floating {
@@ -359,8 +359,8 @@
   height: 46px;
   border-radius: 12px;
   margin-bottom: 18px;
-  background: rgba(212, 175, 95, 0.14);
-  color: #f2d089;
+  background: rgba(180, 136, 77, 0.14);
+  color: #cca25f;
   font-weight: 800;
 }
 
@@ -426,7 +426,7 @@
 .about-visual {
   min-height: 380px;
   border-radius: 28px;
-  background: linear-gradient(150deg, rgba(212, 175, 95, 0.18), rgba(15, 23, 42, 0.8));
+  background: linear-gradient(150deg, rgba(180, 136, 77, 0.18), rgba(15, 23, 42, 0.8));
   border: 1px solid rgba(148, 163, 184, 0.18);
   display: grid;
   place-items: center;
@@ -458,7 +458,7 @@
   content: '•';
   position: absolute;
   right: 0;
-  color: #d4af5f;
+  color: #b4884d;
 }
 
 .team-grid {
@@ -476,14 +476,14 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #d4af5f, #f2d089);
+  background: linear-gradient(135deg, #b4884d, #cca25f);
   color: #09151f;
   font-weight: 800;
 }
 
 .role {
   margin-bottom: 12px;
-  color: #d4af5f;
+  color: #b4884d;
   font-weight: 700;
 }
 
@@ -498,7 +498,7 @@
 .step-number {
   display: inline-block;
   margin-bottom: 14px;
-  color: #d4af5f;
+  color: #b4884d;
   font-size: 0.8rem;
   letter-spacing: 0.22em;
   font-weight: 700;
@@ -626,9 +626,9 @@
   min-width: 180px;
   padding: 0.9rem 1.2rem;
   border-radius: 14px;
-  background: rgba(212, 175, 95, 0.12);
-  border: 1px dashed rgba(212, 175, 95, 0.5);
-  color: #f2d089;
+  background: rgba(180, 136, 77, 0.12);
+  border: 1px dashed rgba(180, 136, 77, 0.5);
+  color: #cca25f;
   font-weight: 700;
   cursor: pointer;
 }
@@ -733,10 +733,10 @@
 }
 
 .profile-pill.active {
-  background: rgba(212, 175, 95, 0.16);
-  border-color: rgba(212, 175, 95, 0.55);
+  background: rgba(180, 136, 77, 0.16);
+  border-color: rgba(180, 136, 77, 0.55);
   color: #f8fafc;
-  box-shadow: 0 0 0 1px rgba(212, 175, 95, 0.2);
+  box-shadow: 0 0 0 1px rgba(180, 136, 77, 0.2);
 }
 
 .portal-layout {
@@ -769,9 +769,9 @@
   justify-content: center;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
-  background: rgba(212, 175, 95, 0.12);
-  border: 1px solid rgba(212, 175, 95, 0.35);
-  color: #f2d089;
+  background: rgba(180, 136, 77, 0.12);
+  border: 1px solid rgba(180, 136, 77, 0.35);
+  color: #cca25f;
   font-size: 0.7rem;
   font-weight: 700;
 }
@@ -823,7 +823,7 @@
 }
 
 .bubble.assistant {
-  background: rgba(212, 175, 95, 0.12);
+  background: rgba(180, 136, 77, 0.12);
   color: #f8fafc;
   align-self: flex-start;
 }
@@ -960,7 +960,7 @@
 }
 
 .doc-category {
-  color: #f2d089;
+  color: #cca25f;
 }
 
 .doc-meta-row {
@@ -1112,7 +1112,7 @@
 }
 
 .packet-header span {
-  color: #d4af5f;
+  color: #b4884d;
   font-size: 0.8rem;
 }
 
@@ -1236,9 +1236,9 @@
   align-self: flex-start;
   padding: 0.5rem 0.9rem;
   border-radius: 999px;
-  background: rgba(212, 175, 95, 0.14);
-  border: 1px solid rgba(212, 175, 95, 0.35);
-  color: #f2d089;
+  background: rgba(180, 136, 77, 0.14);
+  border: 1px solid rgba(180, 136, 77, 0.35);
+  color: #cca25f;
   font-weight: 800;
 }
 
@@ -1986,7 +1986,7 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
   align-items: center;
   gap: 2px;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(231, 198, 107, 0.35);
+  border: 1px solid rgba(180, 136, 77, 0.35);
   border-radius: 999px;
   padding: 3px;
   margin-inline: 8px;
@@ -2006,7 +2006,7 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 }
 .lang-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
 .lang-btn.active {
-  background: #e7c66b;
+  background: #b4884d;
   color: #0f1b2d;
 }
 @media (max-width: 720px) {
@@ -2018,14 +2018,14 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 .login-modal { position: relative; max-width: 428px; padding-top: 30px; overflow: hidden; }
 .login-modal::before {
   content: ''; position: absolute; top: 0; inset-inline: 0; height: 4px;
-  background: linear-gradient(90deg, #e7c66b, #c9a94a);
+  background: linear-gradient(90deg, #b4884d, #9c7238);
 }
 .login-head { text-align: center; margin-bottom: 22px; }
 .login-emblem {
   width: 56px; height: 56px; margin: 4px auto 15px; border-radius: 16px;
   display: grid; place-items: center; color: #0f1b2d;
   background: linear-gradient(160deg, #fbf3da, #f1e0ac);
-  border: 1px solid #e7d9a8; box-shadow: 0 8px 20px rgba(201,169,74,0.28);
+  border: 1px solid #e7d9a8; box-shadow: 0 8px 20px rgba(156, 114, 56,0.28);
 }
 .login-modal .login-head h3 { font-size: 22px; margin: 0 0 6px; color: #0f1b2d; letter-spacing: -0.01em; }
 .login-modal .login-head .client-login-sub { margin: 0 auto; max-width: 320px; }
@@ -2058,7 +2058,7 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 }
 .login-modal form input::placeholder { color: #94a3b8; }
 .login-modal form input:focus {
-  outline: none; border-color: #c9a94a; box-shadow: 0 0 0 3px rgba(231,198,107,0.30);
+  outline: none; border-color: #9c7238; box-shadow: 0 0 0 3px rgba(180, 136, 77,0.30);
 }
 .login-modal .submit-btn { width: 100%; margin-top: 4px; }
 .login-modal .login-hint-mini { margin-top: 12px; }
@@ -2076,7 +2076,7 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
   font-family: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 7px 18px;
   transition: background .15s, box-shadow .15s;
 }
-.login-nav-btn:hover { background: #fbf3da; box-shadow: 0 4px 12px rgba(201,169,74,0.22); }
+.login-nav-btn:hover { background: #fbf3da; box-shadow: 0 4px 12px rgba(156, 114, 56,0.22); }
 
 /* apply the refined segmented control inside the portal login card too */
 .client-login-card .login-seg { margin-top: 4px; }
@@ -2092,29 +2092,29 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 .pricing-card { gap: 10px; padding: 26px 22px 24px; }
 .pricing-card h3 { font-size: 17px; line-height: 1.35; }
 .pricing-card.featured {
-  border-color: #e7c66b;
-  box-shadow: 0 20px 48px rgba(201,169,74,0.28);
-  background: linear-gradient(180deg, rgba(231,198,107,0.10), rgba(231,198,107,0.03));
+  border-color: #b4884d;
+  box-shadow: 0 20px 48px rgba(156, 114, 56,0.28);
+  background: linear-gradient(180deg, rgba(180, 136, 77,0.10), rgba(180, 136, 77,0.03));
 }
 .pricing-ribbon {
   position: absolute; top: -12px; inset-inline-start: 20px;
-  background: linear-gradient(135deg, #e7c66b, #c9a94a); color: #0f1b2d;
+  background: linear-gradient(135deg, #b4884d, #9c7238); color: #0f1b2d;
   font-size: 11.5px; font-weight: 800; padding: 5px 12px; border-radius: 999px;
-  box-shadow: 0 6px 14px rgba(201,169,74,0.35);
+  box-shadow: 0 6px 14px rgba(156, 114, 56,0.35);
 }
 .pricing-card:not(.featured) .pricing-ribbon {
-  background: rgba(231,198,107,0.16); color: #e7c66b; box-shadow: none;
-  border: 1px solid rgba(231,198,107,0.4);
+  background: rgba(180, 136, 77,0.16); color: #b4884d; box-shadow: none;
+  border: 1px solid rgba(180, 136, 77,0.4);
 }
 .pricing-price {
   font-size: 34px; font-weight: 800; color: #f8fafc; line-height: 1; margin-top: 4px;
   display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px;
 }
-.pricing-card.featured .pricing-price { color: #e7c66b; }
+.pricing-card.featured .pricing-price { color: #b4884d; }
 .pricing-price-sub { font-size: 12.5px; font-weight: 600; opacity: 0.7; }
 .pricing-then {
-  margin: 2px 0 0; font-size: 13px; font-weight: 700; color: #e7c66b;
-  background: rgba(231,198,107,0.10); border-radius: 8px; padding: 7px 10px; line-height: 1.4;
+  margin: 2px 0 0; font-size: 13px; font-weight: 700; color: #b4884d;
+  background: rgba(180, 136, 77,0.10); border-radius: 8px; padding: 7px 10px; line-height: 1.4;
 }
 .pricing-features {
   list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 9px; flex: 1;
@@ -2125,8 +2125,22 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 }
 .pricing-card .pricing-features li::before { content: none; }
 .pricing-check { flex-shrink: 0; margin-top: 2px; color: #34d399; }
-.pricing-card.featured .pricing-check { color: #e7c66b; }
+.pricing-card.featured .pricing-check { color: #b4884d; }
 .pricing-value {
   margin: 4px 0 2px; font-size: 13px; font-style: italic; color: #cbd5e1;
   border-top: 1px dashed rgba(148,163,184,0.28); padding-top: 12px;
 }
+
+/* ===== Design language (adopted from "זמן") — serif headings, warm navy + brass ===== */
+h1, h2, h3,
+.hero-copy h1, .section-header h2, .brand-name {
+  font-family: 'Frank Ruhl Libre', 'Spectral', 'Assistant', serif;
+  letter-spacing: -0.01em;
+}
+html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3,
+html[lang="ar"] .brand-name {
+  font-family: 'Noto Sans Arabic', 'Assistant', sans-serif;
+}
+.brand-name { font-weight: 900; letter-spacing: 0.01em; }
+/* brass underline accent under the brand name, like the reference design */
+.brand-block .brand-name { position: relative; }
