@@ -1638,7 +1638,13 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 .client-login-card h2 { margin: 6px 0 8px; font-size: 24px; }
 .client-login-sub { color: #64748b; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
 .client-login-card form label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; margin-bottom: 14px; }
-.client-login-card input { border: 1px solid #cbd5e1; border-radius: 10px; padding: 11px 13px; font-size: 16px; font-family: inherit; background: #fff; }
+.client-login-card input { border: 1px solid #cbd5e1; border-radius: 10px; padding: 11px 13px; font-size: 16px; font-family: inherit; background: #fff; color: #0f172a; }
+.client-login-card input::placeholder { color: #94a3b8; }
+/* safety: all text inputs inside light modals render dark text */
+.consent-modal input[type="text"], .consent-modal input[type="tel"],
+.consent-modal input[type="password"], .consent-modal input[type="email"],
+.consent-modal input[type="number"], .consent-modal input:not([type]) { color: #0f172a; background: #fff; }
+.consent-modal input::placeholder { color: #94a3b8; }
 .client-login-card .submit-btn { width: 100%; }
 
 /* ============ Client mode — hide public content for privacy ============ */
@@ -2047,8 +2053,10 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 }
 .login-modal form input {
   border: 1px solid #cbd5e1; border-radius: 11px; padding: 12px 14px; font-size: 16px;
-  font-family: inherit; background: #fff; transition: border-color .15s, box-shadow .15s;
+  font-family: inherit; background: #fff; color: #0f172a;
+  transition: border-color .15s, box-shadow .15s;
 }
+.login-modal form input::placeholder { color: #94a3b8; }
 .login-modal form input:focus {
   outline: none; border-color: #c9a94a; box-shadow: 0 0 0 3px rgba(231,198,107,0.30);
 }
