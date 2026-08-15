@@ -887,7 +887,8 @@ function App() {
   const [isCheckingQuestion, setIsCheckingQuestion] = useState(false)
   const [garnishInput, setGarnishInput] = useState<GarnishmentInput>({ originalDebt: '', totalCollected: '', extraCharges: '', incomeType: 'salary' })
   const [garnishResult, setGarnishResult] = useState<ReturnType<typeof buildGarnishmentAssessment> | null>(null)
-  const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', consent: false, truth: false, signature: '', sending: false, done: false, error: '', refId: '' })
+  const [refund, setRefund] = useState({ open: false, fullName: '', idNumber: '', phone: '', email: '', fee: false, poa: false, truth: false, privacy: false, signature: '', sending: false, done: false, error: '', refId: '' })
+  const [docConsent, setDocConsent] = useState(false)
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const sigDrawing = useRef(false)
   const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[]; forms?: { t: string; u: string }[] } | null>(null)
@@ -1416,6 +1417,17 @@ function App() {
       })
       return
     }
+    if (!docConsent) {
+      setReviewResult({
+        title: __t("נדרש אישור לעיבוד המסמך"),
+        summary: __t("יש לסמן את תיבת ההסכמה לעיבוד המסמך לפני הבדיקה."),
+        findings: [__t("לא סומנה הסכמה")],
+        recommendations: [__t("סמן/י את תיבת האישור מתחת להעלאה ונסה/י שוב.")],
+        riskLevel: __t("לא זמין"),
+        nextStep: __t("הבדיקה תתבצע רק לאחר אישור מפורש לעיבוד המסמך."),
+      })
+      return
+    }
     if (!consent) { setShowConsent(true); return }
 
     runAiAnalysis({ file: uploadedFile })
@@ -1672,12 +1684,20 @@ function App() {
       setRefund((r) => ({ ...r, error: __t("יש למלא שם מלא וטלפון או דוא\"ל.") }))
       return
     }
-    if (!refund.consent) {
-      setRefund((r) => ({ ...r, error: __t("יש לאשר את תנאי ההתקשרות ושכר הטרחה מותנה ההצלחה.") }))
+    if (!refund.fee) {
+      setRefund((r) => ({ ...r, error: __t("יש לאשר את הסכם שכר הטרחה מותנה ההצלחה.") }))
+      return
+    }
+    if (!refund.poa) {
+      setRefund((r) => ({ ...r, error: __t("יש לאשר את ייפוי הכוח לעורך הדין.") }))
       return
     }
     if (!refund.truth) {
       setRefund((r) => ({ ...r, error: __t("יש לאשר את הצהרת נכונות הפרטים.") }))
+      return
+    }
+    if (!refund.privacy) {
+      setRefund((r) => ({ ...r, error: __t("יש לאשר את מדיניות הפרטיות ועיבוד המידע.") }))
       return
     }
     if (!refund.signature) {
@@ -1694,11 +1714,20 @@ function App() {
           idNumber: refund.idNumber,
           phone: refund.phone,
           email: refund.email,
-          consent: refund.consent,
+          consent: refund.fee && refund.poa && refund.privacy,
+          feeConsent: refund.fee,
+          powerOfAttorney: refund.poa,
           truthDeclared: refund.truth,
-          powerOfAttorney: refund.consent,
+          privacyConsent: refund.privacy,
+          agreementVersion: '2026-08-15',
           attorney: __t("עו״ד מוחמד מ׳ קבהא, מ.ר 67912"),
           feeAgreement: '25%+VAT success-fee, no win no fee',
+          consentTextsSigned: {
+            fee: 'הסכם שכר טרחה מותנה הצלחה 25%+מע״מ; ללא זכייה אין תשלום',
+            poa: 'ייפוי כוח לעו״ד מוחמד מ׳ קבהא מ.ר 67912 לטיפול בהשבת כספים שנגבו ביתר',
+            truth: 'הצהרת נכונות, מלאות ודיוק הפרטים והמסמכים',
+            privacy: 'הסכמה לעיבוד המידע לצורך הטיפול לפי חוק הגנת הפרטיות התשמ״א-1981',
+          },
           signature: refund.signature,
           details: garnishResult
             ? {
@@ -2365,17 +2394,22 @@ function App() {
                       )}</li>
                     </ol>
                   </div>
+                  <p className="consent-sep-note">{__t("יש לאשר כל אחד מהסעיפים בנפרד:")}</p>
                   <label className="consent-line">
-                    <input type="checkbox" checked={refund.consent} onChange={(e) => setRefund((r) => ({ ...r, consent: e.target.checked }))} />
-                    <span>{__t(
-                      "קראתי והבנתי, ואני מסכים/ה להסכם שכר הטרחה המותנה (25% + מע״מ מהסכום שיושב בפועל; ללא זכייה — אין תשלום),"
-                    ) + " "}<strong>{__t("ומייפה בזאת את כוחו של עו״ד מוחמד מ׳ קבהא (מ.ר 67912)")}</strong>{" " + __t("לטפל ולייצגני בעניין.")}</span>
+                    <input type="checkbox" checked={refund.fee} onChange={(e) => setRefund((r) => ({ ...r, fee: e.target.checked }))} />
+                    <span><strong>{__t("שכר טרחה:")}</strong>{" " + __t("קראתי ואני מסכים/ה להסכם שכר הטרחה מותנה ההצלחה — 25% + מע״מ מכל סכום שיושב בפועל; ללא זכייה אין תשלום. אגרות והוצאות חיצוניות אינן כלולות.")}</span>
+                  </label>
+                  <label className="consent-line">
+                    <input type="checkbox" checked={refund.poa} onChange={(e) => setRefund((r) => ({ ...r, poa: e.target.checked }))} />
+                    <span><strong>{__t("ייפוי כוח:")}</strong>{" " + __t("אני מייפה את כוחו של עו״ד מוחמד מ׳ קבהא (מ.ר 67912) לפעול בשמי בעניין השבת כספים שנגבו ביתר, לרבות הגשת בקשות וקבלת כספים בנאמנות עבורי.")}</span>
                   </label>
                   <label className="consent-line">
                     <input type="checkbox" checked={refund.truth} onChange={(e) => setRefund((r) => ({ ...r, truth: e.target.checked }))} />
-                    <span>{__t(
-                      "אני מצהיר/ה כי כל הפרטים שמסרתי נכונים, מלאים ומדויקים, ומבין/ה כי במסירת פרטים שגויים או חלקיים תחול עליי האחריות המלאה והבלעדית לכל תוצאה הנובעת מכך."
-                    )}</span>
+                    <span><strong>{__t("הצהרת נכונות:")}</strong>{" " + __t("אני מצהיר/ה כי כל הפרטים שמסרתי נכונים, מלאים ומדויקים, ומבין/ה כי במסירת פרטים שגויים או חלקיים תחול עליי האחריות המלאה והבלעדית לכל תוצאה הנובעת מכך.")}</span>
+                  </label>
+                  <label className="consent-line">
+                    <input type="checkbox" checked={refund.privacy} onChange={(e) => setRefund((r) => ({ ...r, privacy: e.target.checked }))} />
+                    <span><strong>{__t("פרטיות:")}</strong>{" " + __t("אני מסכים/ה לעיבוד המידע והמסמכים לצורך הטיפול בלבד, לרבות באמצעות ספקי מחשוב ו-AI מטעם המשרד, בהתאם למדיניות הפרטיות ולחוק הגנת הפרטיות, התשמ״א-1981.")}</span>
                   </label>
                   <div className="sig-block">
                     <div className="sig-head">
@@ -2393,7 +2427,7 @@ function App() {
                       onPointerLeave={sigEnd}
                     />
                     <p className="sig-note">{__t(
-                      "החתימה נשמרת עם חותמת זמן ומהווה חתימה אלקטרונית לאישור ההסכם וייפוי הכוח (חוק חתימה אלקטרונית, התשס״א-2001)."
+                      "החתימה נשמרת עם חותמת זמן, כתובת IP וגרסת ההסכם, ומהווה ראיה להסכמתך ולאישור ההסכם וייפוי הכוח. אין לראות בה חתימה אלקטרונית מאושרת לפי חוק חתימה אלקטרונית, התשס״א-2001."
                     )}</p>
                   </div>
                   {refund.error && <p className="refund-error">{refund.error}</p>}
@@ -2513,6 +2547,10 @@ function App() {
                     <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} />
                   </label>
                 </div>
+                <label className="doc-consent-line">
+                  <input type="checkbox" checked={docConsent} onChange={(e) => setDocConsent(e.target.checked)} />
+                  <span>{__t("אני מאשר/ת את עיבוד המסמך לצורך מיון ובדיקה, לרבות באמצעות ספקי מחשוב ו-AI מטעם המשרד, בהתאם למדיניות הפרטיות. ידוע לי שאין להעלות מידע שאינו נחוץ או מסמך שאין לי זכות למסור.")}</span>
+                </label>
                 <button type="submit" className="primary-btn submit-btn" disabled={isUploadingDocument}>
                   {isUploadingDocument ? __t("מנתח...") : __t("🔎 בדוק מסמך עכשיו")}
                 </button>

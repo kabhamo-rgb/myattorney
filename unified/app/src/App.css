@@ -2158,3 +2158,15 @@ html[lang="ar"] .brand-name {
 .tool-topic-btn:hover { border-color: #b4884d; background: #faf4e9; transform: translateY(-1px); }
 .tool-topic-ico { font-size: 15px; flex-shrink: 0; }
 @media (max-width: 640px) { .tool-topics-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ===== Separated consents + document-upload consent ===== */
+.consent-sep-note { font-size: 12.5px; font-weight: 700; color: #5b6773; margin: 6px 0 2px; }
+.consent-line { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; font-size: 13px; line-height: 1.5; }
+.consent-line input { margin-top: 3px; width: 17px; height: 17px; flex-shrink: 0; }
+.consent-line strong { color: #16324F; }
+.doc-consent-line {
+  display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 4px;
+  font-size: 12.5px; line-height: 1.5; color: #334155;
+  background: #f4f6f9; border: 1px solid #e1e6ec; border-radius: 10px; padding: 11px 13px;
+}
+.doc-consent-line input { margin-top: 2px; width: 17px; height: 17px; flex-shrink: 0; }
