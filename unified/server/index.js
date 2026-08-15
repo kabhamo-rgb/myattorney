@@ -361,13 +361,48 @@ const extractDocText = async (file, providedText) => {
   return ''
 }
 
+// ===== Legal source registry (multi-source) — "automation proposes, a lawyer decides" =====
+// Free official/public sources are enabled and citable. Commercial databases (Nevo, Takdin)
+// require a paid license + API key, so they are kept as disabled ADAPTER SEAMS until licensed.
+// To connect a real source, implement fetchLegalSource() against its authorized API. No
+// auto-fetched legal rule takes effect in the product until an attorney approves it.
+const LEGAL_SOURCES = [
+  { id: 'legislation', name: 'מאגר החקיקה הלאומי', tier: 'primary', free: true, enabled: true, requiresLicense: false,
+    note: 'הנוסח הרשמי של חוקי מדינת ישראל. גובר על כל מקור אחר במקרה של סתירה.',
+    url: 'https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database' },
+  { id: 'enforcement', name: 'רשות האכיפה והגבייה (הוצאה לפועל)', tier: 'primary', free: true, enabled: true, requiresLicense: false,
+    note: 'נהלים, טפסים ומועדים תפעוליים של ההוצאה לפועל.',
+    url: 'https://www.gov.il/he/departments/enforcement_and_collection_authority' },
+  { id: 'kolzchut', name: 'כל זכות', tier: 'secondary', free: true, enabled: true, requiresLicense: false,
+    note: 'מדריכי זכויות מבוססי חקיקה ופסיקה, בשפה נגישה.', url: 'https://www.kolzchut.org.il/he/' },
+  { id: 'courts', name: 'הרשות השופטת — פסיקה פומבית', tier: 'secondary', free: true, enabled: true, requiresLicense: false,
+    note: 'החלטות ופסקי דין פומביים של בתי המשפט.', url: 'https://www.gov.il/he/departments/courts' },
+  { id: 'nevo', name: 'נבו', tier: 'secondary', free: false, enabled: false, requiresLicense: true,
+    note: 'מאגר חקיקה ופסיקה מסחרי — דורש רישיון ומפתח API. מוכן לחיבור.', endpoint: '[API — דורש רישיון]' },
+  { id: 'takdin', name: 'תקדין', tier: 'secondary', free: false, enabled: false, requiresLicense: true,
+    note: 'מאגר פסיקה מסחרי — דורש רישיון. כבוי עד להסדרה.', endpoint: '[API — דורש רישיון]' },
+]
+
+// ADAPTER SEAM — a real connector goes here (authorized API per source). Returns a
+// simulated marker until a licensed connector is implemented. Automation proposes; a
+// lawyer approves before anything is presented as verified.
+async function fetchLegalSource(/* sourceId, query */) {
+  return { simulated: true, note: 'connector not implemented — requires an authorized API / license' }
+}
+
+// Free, citable deep links fed to the answer engine (built to prefer official sources).
 const SOURCE_HINTS = `מקורות ציבוריים חינמיים מהם ניתן לצטט (העדף קישורים אלה כשהם רלוונטיים):
 - כל זכות — הוצאה לפועל וגבייה: https://www.kolzchut.org.il/he/הוצאה_לפועל_וגבייה
 - כל זכות — נכסים וכספים שאסור לעקל בהוצאה לפועל: https://www.kolzchut.org.il/he/נכסים_וכספים_שאסור_לעקל_בהוצאה_לפועל
 - כל זכות — שכר עבודה שלא ניתן לעקל או לשעבד: https://www.kolzchut.org.il/he/שכר_עבודה_שלא_ניתן_לעקל_או_לשעבד
+- כל זכות — עיקול משכורת ותקרת העיקול: https://www.kolzchut.org.il/he/עיקול_משכורת
+- כל זכות — טענת פרעתי (סעיף 19 לחוק ההוצאה לפועל): https://www.kolzchut.org.il/he/טענת_פרעתי
+- כל זכות — התיישנות חוב: https://www.kolzchut.org.il/he/התיישנות
 - כל זכות — מדריך בנושא פיטורים: https://www.kolzchut.org.il/he/מדריך_בנושא_פיטורים
 - כל זכות — פיצויי פיטורים לעובד שפוטר: https://www.kolzchut.org.il/he/פיצויי_פיטורים_לעובד_שפוטר
-- מאגר החקיקה הלאומי (חוקי מדינת ישראל): https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database`
+- מאגר החקיקה הלאומי (חוקי מדינת ישראל): https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database
+- רשות האכיפה והגבייה: https://www.gov.il/he/departments/enforcement_and_collection_authority
+הערה: מאגרים מסחריים (נבו, תקדין) אינם זמינים לציטוט עד להסדרת רישיון — אל תצטט מהם ואל תמציא מספרי תיקים.`
 
 // Tolerant JSON parse — handles code fences and truncated trailing content.
 const parseJsonLoose = (text) => {
@@ -507,7 +542,7 @@ app.post('/api/legal-analyze', uploadMem.single('file'), async (req, res) => {
 
     const system = `אתה עוזר משפטי מקצועי בישראל, המבסס תשובות על הדין הישראלי ועל מקורות ציבוריים חינמיים. עליך לפענח את המקרה מהמסמך/השאלה, ולהסביר אותו בשתי רמות: (א) בשפה פשוטה ויומיומית עבור מי שאינו בקיא במשפטים, ו-(ב) בניתוח מקצועי. בנוסף הצע צעדים וסעדים — הכל כמידע כללי שאינו ייעוץ משפטי מחייב.
 ${SOURCE_HINTS}
-כללים: בסס עצמך על הדין הישראלי ועל עקרונות פסיקה מקובלים; אל תמציא פסקי דין ספציפיים או מספרי תיקים; אם המידע חלקי — ציין מה חסר; שמור על טון מקצועי, אמפתי ומכבד; ב-plainSummary אסור להשתמש בז'רגון משפטי — הסבר כמו לחבר; ודא שה-JSON שלם וסגור.
+כללים: בסס עצמך על הדין הישראלי ועל עקרונות פסיקה מקובלים; ב-legalAnalysis ציין במדויק את שמות החוקים והסעיפים הרלוונטיים (למשל: חוק ההוצאה לפועל, התשכ״ז-1967 — סעיף 19 (טענת פרעתי); חוק הגנת השכר, התשי״ח-1958 ותקנותיו (תקרת עיקול משכורת); חוק פיצויי פיטורים, התשכ״ג-1963; חוק ההתיישנות, התשי״ח-1958), אך אל תמציא מספרי תיקים או ציטוטי פסיקה ספציפיים; אם בדיקה מעמיקה במאגר פסיקה מסחרי (כגון נבו) עשויה לחדד — ציין זאת כצעד; אם המידע חלקי — ציין מה חסר; שמור על טון מקצועי, אמפתי ומכבד; ב-plainSummary אסור להשתמש בז'רגון משפטי — הסבר כמו לחבר; ודא שה-JSON שלם וסגור.
 מגבלות אורך: bottomLine — משפט אחד; plainSummary — 2 עד 4 משפטים (עד ~70 מילים); כל שאר שדות הטקסט עד ~90 מילים.
 החזר אך ורק JSON תקין במבנה הבא (ללא טקסט נוסף):
 {"bottomLine":"משפט אחד ברור עם השורה התחתונה — מה המצב ומה כדאי לעשות","plainSummary":"הסבר בשפה פשוטה וברורה, 2-4 משפטים, שמסביר למי שלא מבין במשפטים מה קרה, מה זה אומר עבורו ומדוע זה חשוב — בלי מונחים משפטיים","caseDecoding":"פענוח מקצועי וממוקד של המקרה","legalAnalysis":"ניתוח משפטי מקצועי המבוסס על חוק ועקרונות פסיקה","steps":["צעד מעשי 1","צעד מעשי 2","צעד מעשי 3"],"remedies":["סעד אפשרי 1","סעד אפשרי 2"],"sources":[{"title":"שם המקור","url":"קישור"}],"riskLevel":"נמוך/בינוני/גבוה","disclaimer":"מידע כללי בלבד, אינו ייעוץ משפטי מחייב."}`
@@ -540,6 +575,18 @@ ${(docText || '(לא חולץ טקסט מהמסמך)').slice(0, 12000)}`
   } catch (e) {
     res.json({ aiError: true, detail: String(e).slice(0, 200) })
   }
+})
+
+// Public: legal-source registry (transparency + ready for a UI). Shows which databases
+// power the answers, and which commercial ones (Nevo/Takdin) await a license.
+app.get('/api/legal-sources', (_req, res) => {
+  res.json({
+    model: 'ריבוי מקורות — אוטומציה מציעה, עורך דין מאשר',
+    sources: LEGAL_SOURCES.map((s) => ({
+      id: s.id, name: s.name, tier: s.tier, free: !!s.free, enabled: !!s.enabled,
+      requiresLicense: !!s.requiresLicense, note: s.note, url: s.url || null,
+    })),
+  })
 })
 
 /* ===================== PUBLIC: refund requests =================== */
