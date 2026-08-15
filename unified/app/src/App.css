@@ -2007,3 +2007,68 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
   .lang-switch { margin-inline: 4px; padding: 2px; }
   .lang-btn { padding: 5px 7px; font-size: 11.5px; min-width: 26px; }
 }
+
+/* ===== Login modal — refined professional design ===== */
+.login-modal { position: relative; max-width: 428px; padding-top: 30px; overflow: hidden; }
+.login-modal::before {
+  content: ''; position: absolute; top: 0; inset-inline: 0; height: 4px;
+  background: linear-gradient(90deg, #e7c66b, #c9a94a);
+}
+.login-head { text-align: center; margin-bottom: 22px; }
+.login-emblem {
+  width: 56px; height: 56px; margin: 4px auto 15px; border-radius: 16px;
+  display: grid; place-items: center; color: #0f1b2d;
+  background: linear-gradient(160deg, #fbf3da, #f1e0ac);
+  border: 1px solid #e7d9a8; box-shadow: 0 8px 20px rgba(201,169,74,0.28);
+}
+.login-modal .login-head h3 { font-size: 22px; margin: 0 0 6px; color: #0f1b2d; letter-spacing: -0.01em; }
+.login-modal .login-head .client-login-sub { margin: 0 auto; max-width: 320px; }
+
+.login-seg {
+  display: flex; gap: 4px; background: #f1f5f9; border: 1px solid #e6ebf2;
+  border-radius: 14px; padding: 5px; margin: 0 0 20px;
+}
+.login-seg-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 6px; border: none; background: transparent; border-radius: 10px;
+  color: #526077; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: color .15s, background .15s, box-shadow .15s;
+}
+.login-seg-btn svg { flex-shrink: 0; }
+.login-seg-btn:hover { color: #0f1b2d; }
+.login-seg-btn.active {
+  background: #fff; color: #0f1b2d; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(15,27,45,0.13);
+}
+
+.login-modal form label {
+  display: flex; flex-direction: column; gap: 7px;
+  font-weight: 600; font-size: 13.5px; color: #334155; margin-bottom: 14px;
+}
+.login-modal form input {
+  border: 1px solid #cbd5e1; border-radius: 11px; padding: 12px 14px; font-size: 16px;
+  font-family: inherit; background: #fff; transition: border-color .15s, box-shadow .15s;
+}
+.login-modal form input:focus {
+  outline: none; border-color: #c9a94a; box-shadow: 0 0 0 3px rgba(231,198,107,0.30);
+}
+.login-modal .submit-btn { width: 100%; margin-top: 4px; }
+.login-modal .login-hint-mini { margin-top: 12px; }
+.login-modal .google-login-wrap { padding: 14px 0 4px; }
+
+.login-secure {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12px; color: #94a3b8; margin: 20px 0 2px; text-align: center;
+}
+.login-secure svg { flex-shrink: 0; color: #b6a15f; }
+
+/* refined nav login button */
+.login-nav-btn {
+  background: #fff; border: 1px solid #e7d9a8; color: #0f1b2d;
+  font-family: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 7px 18px;
+  transition: background .15s, box-shadow .15s;
+}
+.login-nav-btn:hover { background: #fbf3da; box-shadow: 0 4px 12px rgba(201,169,74,0.22); }
+
+/* apply the refined segmented control inside the portal login card too */
+.client-login-card .login-seg { margin-top: 4px; }

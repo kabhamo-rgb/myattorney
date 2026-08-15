@@ -2060,10 +2060,19 @@ function App() {
 
   const loginMethodsMarkup = (
     <>
-      <div className="login-methods">
-        <button type="button" className={`login-method-tab${loginMethod === 'phone' ? ' active' : ''}`} onClick={() => setLoginMethod('phone')}>{__t("📱 טלפון")}</button>
-        <button type="button" className={`login-method-tab${loginMethod === 'google' ? ' active' : ''}`} onClick={() => setLoginMethod('google')}>Google</button>
-        <button type="button" className={`login-method-tab${loginMethod === 'code' ? ' active' : ''}`} onClick={() => setLoginMethod('code')}>{__t("קוד מהמשרד")}</button>
+      <div className="login-seg" role="tablist" aria-label={__t("שיטת כניסה")}>
+        <button type="button" role="tab" aria-selected={loginMethod === 'phone'} className={`login-seg-btn${loginMethod === 'phone' ? ' active' : ''}`} onClick={() => setLoginMethod('phone')}>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span>{__t("טלפון")}</span>
+        </button>
+        <button type="button" role="tab" aria-selected={loginMethod === 'google'} className={`login-seg-btn${loginMethod === 'google' ? ' active' : ''}`} onClick={() => setLoginMethod('google')}>
+          <svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+          <span>Google</span>
+        </button>
+        <button type="button" role="tab" aria-selected={loginMethod === 'code'} className={`login-seg-btn${loginMethod === 'code' ? ' active' : ''}`} onClick={() => setLoginMethod('code')}>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.5 12.5 20 3m-3 0 3 3-2.6 2.6"/></svg>
+          <span>{__t("קוד מהמשרד")}</span>
+        </button>
       </div>
 
       {loginMethod === 'phone' && phoneLogin.step === 'phone' && (
@@ -2113,6 +2122,11 @@ function App() {
           <button type="submit" className="primary-btn submit-btn" disabled={clientLoginForm.busy}>{clientLoginForm.busy ? __t("מתחבר...") : __t("כניסה")}</button>
         </form>
       )}
+
+      <p className="login-secure">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        {__t("החיבור מאובטח והפרטים שלך שמורים ומוצפנים")}
+      </p>
     </>
   )
 
@@ -2152,9 +2166,13 @@ function App() {
         <div className="consent-overlay" role="dialog" aria-modal="true" onClick={() => setShowLogin(false)}>
           <div className="consent-modal login-modal" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="login-modal-close" aria-label={__t("סגירה")} onClick={() => setShowLogin(false)}>✕</button>
-            <p className="eyebrow">{__t("כניסה / הרשמה מהירה")}</p>
-            <h3>{__t("כניסה מהירה לאתר")}</h3>
-            <p className="client-login-sub">{__t("התחבר/י בשניות כדי להשתמש בשירותים. לקוח חדש — נפתח לך תיק אוטומטית.")}</p>
+            <div className="login-head">
+              <div className="login-emblem">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              </div>
+              <h3>{__t("כניסה מהירה לאתר")}</h3>
+              <p className="client-login-sub">{__t("התחבר/י בשניות כדי להשתמש בשירותים. לקוח חדש — נפתח לך תיק אוטומטית.")}</p>
+            </div>
             {loginMethodsMarkup}
           </div>
         </div>
