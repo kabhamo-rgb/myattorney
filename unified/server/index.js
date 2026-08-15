@@ -372,11 +372,11 @@ const LEGAL_SOURCES = [
     url: 'https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database' },
   { id: 'enforcement', name: 'רשות האכיפה והגבייה (הוצאה לפועל)', tier: 'primary', free: true, enabled: true, requiresLicense: false,
     note: 'נהלים, טפסים ומועדים תפעוליים של ההוצאה לפועל.',
-    url: 'https://www.gov.il/he/departments/enforcement_and_collection_authority' },
+    url: 'https://go.gov.il/ecamain' },
   { id: 'kolzchut', name: 'כל זכות', tier: 'secondary', free: true, enabled: true, requiresLicense: false,
     note: 'מדריכי זכויות מבוססי חקיקה ופסיקה, בשפה נגישה.', url: 'https://www.kolzchut.org.il/he/' },
   { id: 'courts', name: 'הרשות השופטת — פסיקה פומבית', tier: 'secondary', free: true, enabled: true, requiresLicense: false,
-    note: 'החלטות ופסקי דין פומביים של בתי המשפט.', url: 'https://www.gov.il/he/departments/courts' },
+    note: 'החלטות ופסקי דין פומביים של בתי המשפט.', url: 'https://www.court.gov.il/' },
   { id: 'nevo', name: 'נבו', tier: 'secondary', free: false, enabled: false, requiresLicense: true,
     note: 'מאגר חקיקה ופסיקה מסחרי — דורש רישיון ומפתח API. מוכן לחיבור.', endpoint: '[API — דורש רישיון]' },
   { id: 'takdin', name: 'תקדין', tier: 'secondary', free: false, enabled: false, requiresLicense: true,
@@ -395,18 +395,15 @@ const SOURCE_HINTS = `מקורות ציבוריים חינמיים מהם נית
 - כל זכות — הוצאה לפועל וגבייה: https://www.kolzchut.org.il/he/הוצאה_לפועל_וגבייה
 - כל זכות — נכסים וכספים שאסור לעקל בהוצאה לפועל: https://www.kolzchut.org.il/he/נכסים_וכספים_שאסור_לעקל_בהוצאה_לפועל
 - כל זכות — שכר עבודה שלא ניתן לעקל או לשעבד: https://www.kolzchut.org.il/he/שכר_עבודה_שלא_ניתן_לעקל_או_לשעבד
-- כל זכות — עיקול משכורת ותקרת העיקול: https://www.kolzchut.org.il/he/עיקול_משכורת
-- כל זכות — טענת פרעתי (סעיף 19 לחוק ההוצאה לפועל): https://www.kolzchut.org.il/he/טענת_פרעתי
-- כל זכות — התיישנות חוב: https://www.kolzchut.org.il/he/התיישנות
+- כל זכות — טענת פרעתי של חייב בהוצאה לפועל (סעיף 19 לחוק): https://www.kolzchut.org.il/he/טענת_"פרעתי"_של_חייב_בהוצאה_לפועל
 - כל זכות — מדריך בנושא פיטורים: https://www.kolzchut.org.il/he/מדריך_בנושא_פיטורים
 - כל זכות — פיצויי פיטורים לעובד שפוטר: https://www.kolzchut.org.il/he/פיצויי_פיטורים_לעובד_שפוטר
 - כל זכות — זכויות עובדים (מדריך כללי): https://www.kolzchut.org.il/he/זכויות_עובדים
 - כל זכות — שימוע לפני פיטורים: https://www.kolzchut.org.il/he/שימוע_לפני_פיטורים
 - כל זכות — פיצויי הלנת שכר: https://www.kolzchut.org.il/he/פיצויי_הלנת_שכר
-- כל זכות — הודעה מוקדמת לפיטורים ולהתפטרות: https://www.kolzchut.org.il/he/הודעה_מוקדמת_לפיטורים_ולהתפטרות
-- כל זכות — איסור פיטורים בהיריון: https://www.kolzchut.org.il/he/פיטורים_בזמן_היריון
+- כל זכות — הודעה מוקדמת לפיטורים או התפטרות: https://www.kolzchut.org.il/he/הודעה_מוקדמת_לפיטורים_או_התפטרות
 - מאגר החקיקה הלאומי (חוקי מדינת ישראל): https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database
-- רשות האכיפה והגבייה: https://www.gov.il/he/departments/enforcement_and_collection_authority
+- רשות האכיפה והגבייה (הוצאה לפועל): https://go.gov.il/ecamain
 הערה: מאגרים מסחריים (נבו, תקדין) אינם זמינים לציטוט עד להסדרת רישיון — אל תצטט מהם ואל תמציא מספרי תיקים.`
 
 // Tolerant JSON parse — handles code fences and truncated trailing content.
