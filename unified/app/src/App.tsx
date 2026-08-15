@@ -114,58 +114,69 @@ const faqs = [
 ]
 
 // Pricing for online form preparation + submission, by case type.
-// NOTE: placeholder prices — replace with the firm's real rates.
 const pricingTiers = [
   {
     free: true,
-    name: __t("בדיקת עיקול / החזר עיקול ביתר"),
-    price: __t("חינם"),
-    tagline: __t("הכלי המבוקש ביותר · ללא תשלום מראש"),
     highlight: true,
+    ribbon: __t("הכי משתלם · 0 ₪ להתחיל"),
+    name: __t("בדיקת עיקול + טיפול בהחזר"),
+    price: __t("חינם"),
+    sub: __t("הבדיקה הראשונית — ללא עלות"),
+    then: __t("ואז 25% + מע״מ — רק מההחזר שיתקבל בפועל"),
+    value: __t("אתה לא משלם שקל עד שכסף חוזר אליך."),
+    cta: __t("התחל בדיקה חינם"),
     features: [
-      __t("בדיקת יתרת חוב מול הסכומים שנגבו — ללא עלות"),
-      __t("איתור גבייה / עיקול ביתר"),
-      __t("הגשת בקשה להחזר בשמך"),
-      __t("משלמים רק אם מתקבל החזר — 25% + מע״מ"),
-      __t("ללא זכייה — אין תשלום"),
+      __t("בדיקת עומק: יתרת החוב מול כל הסכומים שנגבו, כולל ריבית והצמדה"),
+      __t("איתור גבייה או עיקול ביתר, וכספים מוגנים שנתפסו שלא כדין"),
+      __t("הכנת בקשת ההחזר וכתבי הטענות (טענת פרעתי) על ידי המשרד"),
+      __t("הגשה וייצוג מול רשות האכיפה והגבייה (ההוצאה לפועל)"),
+      __t("ניהול משא ומתן וקבלת הכספים בנאמנות עבורך"),
+      __t("עדכון שוטף על ההתקדמות בתיק"),
+      __t("ללא זכייה — אין תשלום. בלי אותיות קטנות."),
     ],
   },
   {
     id: 'single-form',
-    name: __t("הכנת טופס בודד + שליחה"),
+    name: __t("הכנת טופס משפטי + הגשה"),
     price: '₪190',
-    tagline: __t("הוצל״פ · דרישת תשלום · התראה · בקשה"),
-    highlight: false,
+    sub: __t("לטופס בודד · כולל מע״מ"),
+    value: __t("חוסך שעות עבודה וטעויות ניסוח שעלולות לעכב את התיק."),
+    cta: __t("לתשלום מאובטח"),
     features: [
-      __t("ניסוח טופס לפי סוג המקרה (הוצל״פ / דרישת תשלום)"),
-      __t("התאמה אישית לפרטי התיק"),
-      __t("קובץ מוכן להגשה"),
-      __t("שליחה אונליין ליעד"),
+      __t("ניסוח מקצועי לפי סוג ההליך: הוצל״פ, דרישת תשלום, התראה או בקשה"),
+      __t("התאמה מדויקת לפרטי התיק והנסיבות שלך"),
+      __t("בדיקת תקינות משפטית של הטופס לפני הגשה"),
+      __t("קובץ מוכן להגשה + שליחה אונליין ליעד הנכון"),
+      __t("עותק שמור בתיק הדיגיטלי שלך"),
     ],
   },
   {
     id: 'form-set',
+    ribbon: __t("חוסך לעומת טפסים בודדים"),
     name: __t("סט טפסים לתיק הוצל״פ שלם"),
     price: '₪490',
-    tagline: __t("תיק הוצל״פ / מספר מסמכים מקושרים"),
-    highlight: false,
+    sub: __t("לתיק שלם · כולל מע״מ"),
+    value: __t("במקום להזמין כמה טפסים בנפרד — הכול במחיר אחד."),
+    cta: __t("לתשלום מאובטח"),
     features: [
-      __t("סט טפסים מלא לפי סוג ההליך (הוצל״פ)"),
-      __t("בדיקת מסמכים נלווים"),
-      __t("ליווי עד להגשה"),
-      __t("שליחה וארכוב בתיק"),
+      __t("סט טפסים מלא ומקושר לכל שלבי ההליך"),
+      __t("בדיקת כל המסמכים הנלווים והתאמתם זה לזה"),
+      __t("ליווי מקצועי עד ההגשה בפועל"),
+      __t("שליחה, אישור וארכוב מסודר בתיק"),
+      __t("תיאום ישיר מול המשרד לאורך התהליך"),
     ],
   },
   {
-    name: __t("שירות משפטי מלא"),
+    name: __t("ליווי משפטי מלא"),
     price: __t("לפי הצעה"),
-    tagline: __t("ליווי עורך דין מקצה לקצה"),
-    highlight: false,
+    sub: __t("התאמה אישית לתיק"),
+    value: __t("כשצריך ייצוג מלא — עורך דין לצידך מהשלב הראשון."),
+    cta: __t("קבלת הצעה"),
     features: [
-      __t("פגישת ייעוץ עם עורך דין"),
-      __t("ייצוג בהליך"),
-      __t("ניהול מו\"מ מול הצד השני"),
-      __t("מענה עד סיום התיק"),
+      __t("פגישת ייעוץ אישית עם עורך דין"),
+      __t("ייצוג מלא בהליך מול כל הגורמים"),
+      __t("ניהול משא ומתן מול הצד השני"),
+      __t("ליווי צמוד עד סגירת התיק"),
     ],
   },
 ]
@@ -2933,24 +2944,35 @@ function App() {
             ", מתוך הכסף שחוזר אליך. גם אם חשבונך מוגבל — אפשר להתחיל בלי כל תשלום מקדים."
           )}</div>
 
+          <div className="pricing-trust">
+            <span className="pricing-trust-item">🛡️ {__t("ללא תשלום מראש")}</span>
+            <span className="pricing-trust-item">⚖️ {__t("עו״ד אחראי על התיק")}</span>
+            <span className="pricing-trust-item">✅ {__t("עמלה רק על הצלחה")}</span>
+            <span className="pricing-trust-item">🔒 {__t("תשלום מאובטח")}</span>
+          </div>
+
           <div className="pricing-grid">
             {pricingTiers.map((tier) => (
               <div key={tier.name} className={`pricing-card${tier.highlight ? ' featured' : ''}`}>
-                {tier.highlight && <span className="pricing-badge">{tier.tagline}</span>}
+                {'ribbon' in tier && tier.ribbon && <span className="pricing-ribbon">{tier.ribbon}</span>}
                 <h3>{tier.name}</h3>
-                {!tier.highlight && <p className="pricing-tagline">{tier.tagline}</p>}
-                <div className="pricing-price">{tier.price}</div>
-                <ul>
+                <div className="pricing-price">{tier.price}{'sub' in tier && tier.sub && <span className="pricing-price-sub">{tier.sub}</span>}</div>
+                {'then' in tier && tier.then && <p className="pricing-then">{tier.then}</p>}
+                <ul className="pricing-features">
                   {tier.features.map((f) => (
-                    <li key={f}>{f}</li>
+                    <li key={f}>
+                      <svg className="pricing-check" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 1.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zm4.03 6.28-4.8 4.8a.75.75 0 0 1-1.06 0l-2.2-2.2a.75.75 0 1 1 1.06-1.06l1.67 1.67 4.27-4.27a.75.75 0 0 1 1.06 1.06z"/></svg>
+                      <span>{f}</span>
+                    </li>
                   ))}
                 </ul>
+                {'value' in tier && tier.value && <p className="pricing-value">{tier.value}</p>}
                 {'free' in tier ? (
-                  <button type="button" className="primary-btn" onClick={() => { startLiensCheck(); window.location.hash = 'legal-tool' }}>{__t("התחל בדיקה חינם")}</button>
+                  <button type="button" className="primary-btn" onClick={() => { startLiensCheck(); window.location.hash = 'legal-tool' }}>{tier.cta}</button>
                 ) : 'id' in tier ? (
-                  <button type="button" className="secondary-btn" onClick={() => handleCheckout((tier as { id: string }).id)}>{__t("לתשלום מאובטח")}</button>
+                  <button type="button" className="secondary-btn" onClick={() => handleCheckout((tier as { id: string }).id)}>{tier.cta}</button>
                 ) : (
-                  <a className="secondary-btn" href="#contact">{__t("קבלת הצעה")}</a>
+                  <a className="secondary-btn" href="#contact">{tier.cta}</a>
                 )}
               </div>
             ))}

@@ -2072,3 +2072,53 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 
 /* apply the refined segmented control inside the portal login card too */
 .client-login-card .login-seg { margin-top: 4px; }
+
+/* ===== Pricing — richer marketing design ===== */
+.pricing-trust {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; margin: 0 0 22px;
+}
+.pricing-trust-item {
+  font-size: 13.5px; font-weight: 600; color: #cbd5e1;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.pricing-card { gap: 10px; padding: 26px 22px 24px; }
+.pricing-card h3 { font-size: 17px; line-height: 1.35; }
+.pricing-card.featured {
+  border-color: #e7c66b;
+  box-shadow: 0 20px 48px rgba(201,169,74,0.28);
+  background: linear-gradient(180deg, rgba(231,198,107,0.10), rgba(231,198,107,0.03));
+}
+.pricing-ribbon {
+  position: absolute; top: -12px; inset-inline-start: 20px;
+  background: linear-gradient(135deg, #e7c66b, #c9a94a); color: #0f1b2d;
+  font-size: 11.5px; font-weight: 800; padding: 5px 12px; border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(201,169,74,0.35);
+}
+.pricing-card:not(.featured) .pricing-ribbon {
+  background: rgba(231,198,107,0.16); color: #e7c66b; box-shadow: none;
+  border: 1px solid rgba(231,198,107,0.4);
+}
+.pricing-price {
+  font-size: 34px; font-weight: 800; color: #f8fafc; line-height: 1; margin-top: 4px;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px;
+}
+.pricing-card.featured .pricing-price { color: #e7c66b; }
+.pricing-price-sub { font-size: 12.5px; font-weight: 600; opacity: 0.7; }
+.pricing-then {
+  margin: 2px 0 0; font-size: 13px; font-weight: 700; color: #e7c66b;
+  background: rgba(231,198,107,0.10); border-radius: 8px; padding: 7px 10px; line-height: 1.4;
+}
+.pricing-features {
+  list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 9px; flex: 1;
+}
+.pricing-card .pricing-features li {
+  font-size: 13.5px; line-height: 1.45; opacity: 0.95; padding-inline-start: 0;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.pricing-card .pricing-features li::before { content: none; }
+.pricing-check { flex-shrink: 0; margin-top: 2px; color: #34d399; }
+.pricing-card.featured .pricing-check { color: #e7c66b; }
+.pricing-value {
+  margin: 4px 0 2px; font-size: 13px; font-style: italic; color: #cbd5e1;
+  border-top: 1px dashed rgba(148,163,184,0.28); padding-top: 12px;
+}
