@@ -352,7 +352,6 @@ function Backoffice() {
             {loginError && <p className="bo-error">{loginError}</p>}
             <button type="submit" className="bo-btn bo-btn-primary">כניסה</button>
           </form>
-          <p className="bo-login-hint">ברירת מחדל לפיתוח: admin / 1234 — יש להחליף לפני עלייה לאוויר.</p>
           <a className="bo-back-link" href="#top" onClick={() => { window.location.hash = ''; window.location.reload() }}>חזרה לאתר →</a>
         </div>
       </div>

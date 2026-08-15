@@ -493,7 +493,7 @@ const buildImmediateQuestionAssessment = (rawQuestion: string) => {
   const riskLevel = isLiens || hasMoney ? __t("דורש בדיקה דחופה") : __t("סיכון נמוך-בינוני")
 
   return {
-    title: __t("תשובה משפטית ראשונית מיידית"),
+    title: __t("מיון ראשוני מיידי — מידע כללי"),
     summary: matched
       ? __tt([
       "השאלה נוגעת בעיקר לתחום \"",
@@ -1235,6 +1235,9 @@ function App() {
     try { window.localStorage.setItem('mya-consent', new Date().toISOString()) } catch { /* ignore */ }
     setConsent(true)
     setShowConsent(false)
+    const pending = pendingActionRef.current
+    pendingActionRef.current = null
+    if (pending) pending()
   }
 
   const applyClientSession = (d: { profileId: string; name?: string; caseId?: string; isNew?: boolean; code?: string }) => {
@@ -1246,12 +1249,6 @@ function App() {
   }
 
   // Smart gate: services are browsable, but acting requires a quick login (which auto-opens a case).
-  const ensureAuth = (): boolean => {
-    if (clientAuthed) return true
-    setShowLogin(true)
-    return false
-  }
-
   const handleClientLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setClientLoginForm((f) => ({ ...f, busy: true, error: '' }))
@@ -1403,6 +1400,9 @@ function App() {
     setLookupSources(getLegalSources(`${file.name} ${textPreview}`))
   }
 
+  // After first-time privacy consent, resume the check the user was trying to run.
+  const pendingActionRef = useRef<(() => void) | null>(null)
+
   const handleDocumentReview = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!uploadedFile) {
@@ -1416,8 +1416,6 @@ function App() {
       })
       return
     }
-
-    if (!ensureAuth()) return
     if (!consent) { setShowConsent(true); return }
 
     runAiAnalysis({ file: uploadedFile })
@@ -1548,7 +1546,6 @@ function App() {
 
   const handleQuestionSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!consent) { setShowConsent(true); return }
     if (!legalQuestion.trim()) {
       setReviewResult({
         title: __t("לא הוזנה שאלה"),
@@ -1560,14 +1557,16 @@ function App() {
       })
       return
     }
-    if (!ensureAuth()) return
-    setIsCheckingQuestion(true)
-    // Immediate local assessment + cited sources from public legal databases.
-    const assessment = buildImmediateQuestionAssessment(legalQuestion)
-    setReviewResult(assessment)
-    setLookupSources(getLegalSources(legalQuestion))
-    setIsCheckingQuestion(false)
-    runAiAnalysis({ question: legalQuestion })
+    const run = () => {
+      setIsCheckingQuestion(true)
+      // Immediate local assessment + cited sources from public legal databases.
+      setReviewResult(buildImmediateQuestionAssessment(legalQuestion))
+      setLookupSources(getLegalSources(legalQuestion))
+      setIsCheckingQuestion(false)
+      runAiAnalysis({ question: legalQuestion })
+    }
+    if (!consent) { pendingActionRef.current = run; setShowConsent(true); return }
+    run()
   }
 
   // Topic checks — each added service is a one-click check that opens the question
@@ -1590,13 +1589,15 @@ function App() {
       const el = document.getElementById('legal-tool')
       if (el) el.scrollIntoView({ behavior: 'smooth' })
     }
-    if (!consent) { setShowConsent(true); return }
-    if (!ensureAuth()) return
-    setIsCheckingQuestion(true)
-    setReviewResult(buildImmediateQuestionAssessment(prompt))
-    setLookupSources(getLegalSources(prompt))
-    setIsCheckingQuestion(false)
-    runAiAnalysis({ question: prompt })
+    const run = () => {
+      setIsCheckingQuestion(true)
+      setReviewResult(buildImmediateQuestionAssessment(prompt))
+      setLookupSources(getLegalSources(prompt))
+      setIsCheckingQuestion(false)
+      runAiAnalysis({ question: prompt })
+    }
+    if (!consent) { pendingActionRef.current = run; setShowConsent(true); return }
+    run()
   }
 
   const startLiensCheck = () => {
@@ -1609,16 +1610,19 @@ function App() {
 
   const handleGarnishSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!consent) { setShowConsent(true); return }
-    const result = buildGarnishmentAssessment(garnishInput)
-    setGarnishResult(null)
-    setGarnishProcessing(true)
-    window.setTimeout(() => {
-      setGarnishResult(result)
-      setLookupSources(getLegalSources(__t("עיקול הוצאה לפועל גבייה כספים מוגנים")))
-      setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
-      setGarnishProcessing(false)
-    }, 4000)
+    const run = () => {
+      const result = buildGarnishmentAssessment(garnishInput)
+      setGarnishResult(null)
+      setGarnishProcessing(true)
+      window.setTimeout(() => {
+        setGarnishResult(result)
+        setLookupSources(getLegalSources(__t("עיקול הוצאה לפועל גבייה כספים מוגנים")))
+        setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
+        setGarnishProcessing(false)
+      }, 4000)
+    }
+    if (!consent) { pendingActionRef.current = run; setShowConsent(true); return }
+    run()
   }
 
   const openRefund = () => setRefund((r) => ({ ...r, open: true, done: false, error: '' }))
@@ -2320,7 +2324,7 @@ function App() {
               </div>
             ) : (
               <>
-                <p className="eyebrow">{__t("מתן הרשאה למשרד · אנחנו נעשה הכל בשבילך")}</p>
+                <p className="eyebrow">{__t("מתן הרשאה למשרד · המשרד יטפל עבורך")}</p>
                 <h3>{__t("הרשאה לטיפול, ייפוי כוח והסכם שכר טרחה")}</h3>
                 <p className="refund-note">{__t(
                   "טופס אחד שכולל את כל מה שצריך כדי שהמשרד יתחיל לטפל: הסכם שכר טרחה מותנה הצלחה, ייפוי כוח, ומדיניות פרטיות — באישור וחתימה דיגיטלית. הבקשה נשלחת למשרד בלבד ואינה מוגשת לרשויות באופן אוטומטי."
@@ -2671,7 +2675,7 @@ function App() {
                 </details>
 
                 <div className="handle-cta handle-cta-answer">
-                  <p className="handle-cta-lead">✨ <strong>{__t("אנחנו נעשה הכל בשבילך")}</strong></p>
+                  <p className="handle-cta-lead">✨ <strong>{__t("המשרד יטפל עבורך")}</strong></p>
                   <p className="handle-cta-sub">{__t(
                     "בלחיצה אחת תיתן/י למשרד הרשאה לטפל — טופס אחד שכולל הסכם שכר טרחה, ייפוי כוח ומדיניות פרטיות, בחתימה דיגיטלית."
                   )}</p>
@@ -2755,7 +2759,7 @@ function App() {
                   <div className="refund-done">{__t("✅ הבקשה וההרשאה נשלחו בהצלחה. נציג/ת מהמשרד יחזרו אליך בהקדם לטיפול.")}</div>
                 ) : (
                   <div className="handle-cta">
-                    <p className="handle-cta-lead">✨ <strong>{__t("אנחנו נעשה הכל בשבילך")}</strong>{" " + __t("— בדיקה, הכנת הבקשה, והגשה מול ההוצאה לפועל.")}</p>
+                    <p className="handle-cta-lead">✨ <strong>{__t("המשרד יטפל עבורך")}</strong>{" " + __t("— בדיקה, הכנת הבקשה, והגשה מול ההוצאה לפועל.")}</p>
                     <button type="button" className="primary-btn refund-btn" onClick={openRefund}>{__t("📝 מתן הרשאה למשרד לטפל")}</button>
                     <a className="secondary-btn" href="#pricing">{__t("הכנת טפסים ושליחה")}</a>
                   </div>
@@ -2836,7 +2840,7 @@ function App() {
         <section id="services" className="section services-section">
           <div className="section-header">
             <p className="eyebrow">{__t("מה אנחנו עושים")}</p>
-            <h2>{__t("מומחיות: הוצאה לפועל, עיקולים וזכויות עובדים")}</h2>
+            <h2>{__t("תחומי הטיפול של המשרד: הוצאה לפועל, עיקולים וזכויות עובדים")}</h2>
           </div>
 
           <div className="services-grid">
@@ -2896,8 +2900,8 @@ function App() {
 
         <section id="team" className="section team-section">
           <div className="section-header">
-            <p className="eyebrow">{__t("הצוות")}</p>
-            <h2>{__t("עורכי דין שמבינים את המורכבות של המקרה שלך")}</h2>
+            <p className="eyebrow">{__t("עורך הדין האחראי")}</p>
+            <h2>{__t("עורך דין שמבין את המורכבות של המקרה שלך")}</h2>
           </div>
 
           <div className="team-grid">
@@ -3572,7 +3576,7 @@ function App() {
               />
             </label>
 
-            <button type="submit" className="primary-btn submit-btn">{__t("בדוק מול חוקים, תקנות, פסיקה ומאגרי מידע")}</button>
+            <button type="submit" className="primary-btn submit-btn">{__t("בצע מיון ראשוני לפי הפרטים שהוזנו")}</button>
 
             {legalReview && (
               <div className="review-result legal-result" aria-live="polite">
