@@ -2170,3 +2170,6 @@ html[lang="ar"] .brand-name {
   background: #f4f6f9; border: 1px solid #e1e6ec; border-radius: 10px; padding: 11px 13px;
 }
 .doc-consent-line input { margin-top: 2px; width: 17px; height: 17px; flex-shrink: 0; }
+
+/* legal "last updated" line */
+.legal-updated { font-size: 12px; color: #8a94a6; font-weight: 600; margin: 0 0 6px; }
