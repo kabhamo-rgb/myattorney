@@ -45,10 +45,18 @@ export function setLang(l: Lang) {
     /* ignore */
   }
   // Reload so all content (including module-scope data) renders in the new language.
+  // If a ?lang param exists, strip it (localStorage now governs) and navigate.
+  // Otherwise force a full reload — assigning the same href would NOT reload,
+  // especially when the URL carries a #hash.
   try {
     const url = new URL(window.location.href)
-    url.searchParams.delete('lang')
-    window.location.href = url.toString()
+    if (url.searchParams.has('lang')) {
+      url.searchParams.delete('lang')
+      window.location.replace(url.toString())
+      window.location.reload()
+    } else {
+      window.location.reload()
+    }
   } catch {
     window.location.reload()
   }
@@ -74,7 +82,7 @@ export function t(he: string): string {
 export function tt(quasis: string[], ...exprs: any[]): string {
   let parts = quasis
   if (CUR !== 'he') {
-    const key = quasis.join('￿')
+    const key = quasis.join('\uFFFF')
     const table = T[CUR]
     const tr = table ? table[key] : undefined
     if (tr && tr.length === quasis.length) parts = tr
