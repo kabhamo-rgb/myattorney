@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 import { t as __t, tt as __tt, LANGS, getLang, setLang } from "./i18n";
+import { track } from "./analytics";
 
 const services = [
   {
@@ -1344,6 +1345,7 @@ function App() {
       })
       const data = await response.json()
       if (data && data.url) {
+        track('begin_checkout', { tier: tierId })
         window.location.href = data.url // → Stripe hosted Checkout (Apple Pay / Google Pay / cards)
         return
       }
@@ -1372,6 +1374,7 @@ function App() {
         body: JSON.stringify(payload),
       })
       // Lead is now visible to staff in the back-office pipeline.
+      track('generate_lead', { form: 'contact' })
     } catch {
       // Non-blocking: the confirmation is already shown to the visitor.
     }
@@ -1606,6 +1609,7 @@ function App() {
       setReviewResult(buildImmediateQuestionAssessment(prompt))
       setLookupSources(getLegalSources(prompt))
       setIsCheckingQuestion(false)
+      track('check_completed', { check_type: 'question' })
       runAiAnalysis({ question: prompt })
     }
     if (!consent) { pendingActionRef.current = run; setShowConsent(true); return }
@@ -1631,6 +1635,7 @@ function App() {
         setLookupSources(getLegalSources(__t("עיקול הוצאה לפועל גבייה כספים מוגנים")))
         setRefund((r) => ({ ...r, open: false, done: false, error: '' }))
         setGarnishProcessing(false)
+        track('check_completed', { check_type: 'garnishment' })
       }, 4000)
     }
     if (!consent) { pendingActionRef.current = run; setShowConsent(true); return }
@@ -1744,6 +1749,7 @@ function App() {
       let refId = ''
       try { const d = await resp.json(); refId = (d && d.id) || '' } catch { /* ignore */ }
       setRefund((r) => ({ ...r, sending: false, done: true, refId }))
+      track('generate_lead', { form: 'refund' })
     } catch {
       setRefund((r) => ({ ...r, sending: false, done: true }))
     }
