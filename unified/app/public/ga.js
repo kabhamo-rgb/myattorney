@@ -2,7 +2,7 @@
    החלף G-XXXXXXXXXX במזהה המדידה שלך מ-GA4 (מתחיל ב-G-). זה הקובץ היחיד שצריך לערוך.
    כל עוד לא הוחלף — הסקריפט לא עושה כלום (no-op). */
 (function () {
-  var ID = 'G-XXXXXXXXXX';
+  var ID = 'G-ME1HFYMNYH';
   if (!ID || ID.indexOf('G-') !== 0 || ID === 'G-XXXXXXXXXX') return; // לא הוגדר עדיין
   var s = document.createElement('script');
   s.async = true;
