@@ -3111,6 +3111,23 @@ function App() {
           </div>
         </section>
 
+        <section className="trust-bar section" aria-label={__t("אמון ושקיפות")}>
+          <div className="trust-badges">
+            <div className="trust-badge"><span className="trust-ico">🔒</span><span>{__t("חיבור מאובטח (SSL)")}</span></div>
+            <div className="trust-badge"><span className="trust-ico">⚖️</span><span>{__t("מבוסס על מאגרים ציבוריים רשמיים")}</span></div>
+            <div className="trust-badge"><span className="trust-ico">💚</span><span>{__t("ללא זכייה — אין תשלום")}</span></div>
+            <div className="trust-badge"><span className="trust-ico">🛡️</span><span>{__t("פועל לפי חוק הגנת הפרטיות")}</span></div>
+          </div>
+          <div className="trust-sources">
+            <span className="trust-sources-label">{__t("מקורות המידע:")}</span>
+            <a href="https://www.gov.il/he/service/the_laws_of_the_state_of_israel_in_the_national_legislation_database" target="_blank" rel="noreferrer noopener">🏛️ {__t("מאגר החקיקה הלאומי")}</a>
+            <a href="https://go.gov.il/ecamain" target="_blank" rel="noreferrer noopener">📚 {__t("רשות האכיפה והגבייה")}</a>
+            <a href="https://www.kolzchut.org.il/he/" target="_blank" rel="noreferrer noopener">📖 {__t("כל זכות")}</a>
+            <a href="https://www.court.gov.il/" target="_blank" rel="noreferrer noopener">⚖️ {__t("הרשות השופטת")}</a>
+          </div>
+          <p className="trust-credentials">{__t("עו״ד מוחמד מ. קבהא · מ.ר 67912 · חבר לשכת עורכי הדין בישראל · האתר פועל בהתאם לכללי לשכת עורכי הדין (פרסומת)")}</p>
+        </section>
+
         {legalNews.length > 0 && (
           <section id="news" className="section news-section" aria-label={__t("חדשות ועדכונים משפטיים")}>
             <div className="section-header">
