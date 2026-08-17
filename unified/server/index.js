@@ -599,6 +599,71 @@ app.get('/api/legal-sources', (_req, res) => {
   })
 })
 
+/* ===================== PUBLIC: legal news / updates =================== */
+// Hybrid feed: a curated multilingual base (always relevant + translated) + a live
+// augmentation pulled from gov.il (filtered by relevance keywords, cached). If the live
+// fetch fails or yields nothing relevant, the curated list is served on its own — so the
+// banner is never empty and never shows irrelevant content.
+const NEWS_SRC_LABEL = { he: 'מקור רשמי', ar: 'مصدر رسمي', en: 'Official source', ru: 'Офиц. источник' }
+const NEWS_KEYWORDS = ['עיקול', 'הוצאה לפועל', 'הוצל', 'חוב', 'חדלות פירעון', 'פשיטת רגל', 'גבייה', 'זכויות עובד', 'פיטורים', 'שכר מינימום', 'הלנת שכר', 'מזונות', 'צרכנ', 'ביטוח לאומי', 'נזיק']
+const NEWS_CURATED = [
+  { id: 'min-wage', date: '2026-04-01', url: 'https://www.kolzchut.org.il/he/%D7%A9%D7%9B%D7%A8_%D7%9E%D7%99%D7%A0%D7%99%D7%9E%D7%95%D7%9D',
+    title: { he: 'שכר המינימום עודכן ל-6,443.85 ₪', ar: 'تحديث الحد الأدنى للأجور إلى 6,443.85 ₪', en: 'Minimum wage updated to ₪6,443.85', ru: 'Минимальная зарплата обновлена до 6 443,85 ₪' },
+    summary: { he: 'החל מ-1 באפריל 2026 עלה שכר המינימום החודשי ל-6,443.85 ₪. מי שקיבל פחות — זכאי להפרשי שכר.', ar: 'اعتباراً من 1 أبريل 2026 ارتفع الحد الأدنى الشهري للأجور إلى 6,443.85 ₪. من تقاضى أقل — يستحق فروق الأجر.', en: 'As of April 1, 2026, the monthly minimum wage rose to ₪6,443.85. Anyone paid less is entitled to the difference.', ru: 'С 1 апреля 2026 года месячная минимальная зарплата выросла до 6 443,85 ₪. Кто получил меньше — вправе требовать разницу.' } },
+  { id: 'vat-18', date: '2025-01-01', url: 'https://www.kolzchut.org.il/he/%D7%9E%D7%A1_%D7%A2%D7%A8%D7%9A_%D7%9E%D7%95%D7%A1%D7%A3',
+    title: { he: 'מע״מ עומד על 18%', ar: 'ضريبة القيمة المضافة 18%', en: 'VAT stands at 18%', ru: 'НДС составляет 18%' },
+    summary: { he: 'מאז ינואר 2025 שיעור המע״מ בישראל הוא 18%. חשוב לוודא שחיובים וחשבוניות מחושבים לפי השיעור הנכון.', ar: 'منذ يناير 2025 نسبة ضريبة القيمة المضافة في إسرائيل 18%. من المهم التأكد من احتساب الفواتير والرسوم وفق النسبة الصحيحة.', en: "Since January 2025, Israel's VAT rate is 18%. Make sure charges and invoices use the correct rate.", ru: 'С января 2025 года ставка НДС в Израиле — 18%. Важно проверять, что счета рассчитаны по правильной ставке.' } },
+  { id: 'insolvency', url: 'https://www.kolzchut.org.il/he/%D7%97%D7%93%D7%9C%D7%95%D7%AA_%D7%A4%D7%99%D7%A8%D7%A2%D7%95%D7%9F',
+    title: { he: 'מסלול שיקום כלכלי לחייבים', ar: 'مسار إعادة التأهيل الاقتصادي للمدينين', en: 'Economic rehabilitation path for debtors', ru: 'Путь экономической реабилитации для должников' },
+    summary: { he: 'חוק חדלות פירעון ושיקום כלכלי מאפשר לחייבים הליך מוסדר להפטר ולשיקום כלכלי, במקום פשיטת רגל.', ar: 'قانون الإعسار وإعادة التأهيل الاقتصادي يتيح للمدينين إجراءً منظماً للإبراء وإعادة التأهيل بدلاً من إشهار الإفلاس.', en: 'The Insolvency and Economic Rehabilitation Law offers debtors an orderly path to discharge and rehabilitation instead of bankruptcy.', ru: 'Закон о несостоятельности и экономической реабилитации даёт должникам упорядоченный путь к освобождению от долгов вместо банкротства.' } },
+  { id: 'pareti', url: 'https://www.kolzchut.org.il/he/%D7%98%D7%A2%D7%A0%D7%AA_%22%D7%A4%D7%A8%D7%A2%D7%AA%D7%99%22_%D7%A9%D7%9C_%D7%97%D7%99%D7%99%D7%91_%D7%91%D7%94%D7%95%D7%A6%D7%90%D7%94_%D7%9C%D7%A4%D7%95%D7%A2%D7%9C',
+    title: { he: 'שילמת חוב? טענת "פרעתי"', ar: 'سدّدت الدين؟ دعوى «الوفاء»', en: 'Paid your debt? The "paid" claim', ru: 'Погасили долг? Заявление «Парети»' },
+    summary: { he: 'סעיף 19 לחוק ההוצאה לפועל מאפשר לחייב ששילם — כולו או חלקו — לעצור גבייה שאינה מוצדקת.', ar: 'المادة 19 من قانون دائرة الإجراء تتيح للمدين الذي سدّد — كلياً أو جزئياً — وقف تحصيل غير مبرَّر.', en: 'Section 19 of the Execution Law lets a debtor who already paid — in full or part — stop unjustified collection.', ru: 'Статья 19 Закона об исполнительном производстве позволяет должнику, уже оплатившему долг, остановить необоснованное взыскание.' } },
+  { id: 'protected', url: 'https://www.kolzchut.org.il/he/%D7%A0%D7%9B%D7%A1%D7%99%D7%9D_%D7%95%D7%9B%D7%A1%D7%A4%D7%99%D7%9D_%D7%A9%D7%90%D7%A1%D7%95%D7%A8_%D7%9C%D7%A2%D7%A7%D7%9C_%D7%91%D7%94%D7%95%D7%A6%D7%90%D7%94_%D7%9C%D7%A4%D7%95%D7%A2%D7%9C',
+    title: { he: 'יש כספים שאסור לעקל', ar: 'هناك أموال يُمنع حجزها', en: 'Some funds cannot be garnished', ru: 'Некоторые средства нельзя арестовать' },
+    summary: { he: 'חלק מהשכר, קצבאות ביטוח לאומי ודמי מזונות מוגנים מעיקול. אם עוקלו — ייתכן שניתן להשיבם.', ar: 'جزء من الأجر، مخصصات التأمين الوطني والنفقة محمية من الحجز. إذا حُجزت — قد يمكن استردادها.', en: 'Part of wages, National Insurance allowances and alimony are protected from garnishment. If garnished, they may be recoverable.', ru: 'Часть зарплаты, пособия «Битуах Леуми» и алименты защищены от ареста. Если арестованы — возможно, их можно вернуть.' } },
+  { id: 'hearing', url: 'https://www.kolzchut.org.il/he/%D7%A9%D7%99%D7%9E%D7%95%D7%A2_%D7%9C%D7%A4%D7%A0%D7%99_%D7%A4%D7%99%D7%98%D7%95%D7%A8%D7%99%D7%9D',
+    title: { he: 'פיטורים? מגיע לך שימוע', ar: 'فصل من العمل؟ يحق لك جلسة استماع', en: "Dismissed? You're entitled to a hearing", ru: 'Увольнение? Вам положено слушание' },
+    summary: { he: 'לפי הפסיקה, מעסיק חייב לערוך שימוע הוגן לפני פיטורים. היעדר שימוע כדין עשוי לזכות בפיצוי.', ar: 'وفق الاجتهاد القضائي، على صاحب العمل إجراء جلسة استماع عادلة قبل الفصل. غياب الاستماع القانوني قد يخوّل تعويضاً.', en: 'Case law requires a fair hearing before dismissal. The absence of a proper hearing may entitle you to compensation.', ru: 'По судебной практике работодатель обязан провести справедливое слушание перед увольнением. Его отсутствие может дать право на компенсацию.' } },
+]
+let liveNewsCache = { at: 0, items: [] }
+async function fetchLiveNews() {
+  const now = Date.now()
+  if (liveNewsCache.items.length && now - liveNewsCache.at < 3 * 60 * 60 * 1000) return liveNewsCache.items
+  try {
+    const url = process.env.LEGAL_NEWS_API || 'https://www.gov.il/he/api/PublicationApi/index?limit=40&skip=0'
+    const r = await fetchWithTimeout(url, { headers: { accept: 'application/json' } }, 9000)
+    const j = await r.json().catch(() => null)
+    const arr = (j && (j.results || j.Results || j.data || j.items)) || []
+    const items = arr
+      .map((x) => ({
+        title: String(x.Title || x.title || '').trim(),
+        url: x.Url ? (String(x.Url).startsWith('http') ? x.Url : 'https://www.gov.il' + x.Url) : (x.url || ''),
+        date: String(x.DocPublishedDate || x.DocUpdateDate || x.date || '').slice(0, 10),
+        source: 'gov.il', live: true,
+      }))
+      .filter((it) => it.title && NEWS_KEYWORDS.some((k) => it.title.includes(k)))
+      .slice(0, 4)
+    liveNewsCache = { at: now, items }
+    return items
+  } catch {
+    return liveNewsCache.items || []
+  }
+}
+app.get('/api/legal-news', async (req, res) => {
+  const lang = ['he', 'ar', 'en', 'ru'].includes(String(req.query.lang)) ? String(req.query.lang) : 'he'
+  const srcLabel = NEWS_SRC_LABEL[lang]
+  const curated = NEWS_CURATED.map((n) => ({
+    id: n.id, date: n.date || '', url: n.url, source: srcLabel,
+    title: (n.title && (n.title[lang] || n.title.he)) || '',
+    summary: (n.summary && (n.summary[lang] || n.summary.he)) || '',
+  }))
+  let live = []
+  try { live = await fetchLiveNews() } catch { live = [] }
+  const items = [...live, ...curated].slice(0, 8)
+  res.json({ updatedAt: new Date().toISOString(), items })
+})
+
 /* ===================== PUBLIC: refund requests =================== */
 // Registered + consented request that the FIRM handles. Does not file anything
 // with any authority automatically. Stored as a lead so staff can act on it.
