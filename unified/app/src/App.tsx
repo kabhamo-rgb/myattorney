@@ -346,103 +346,6 @@ const buildPacketForCase = (category: string, summary: string) => {
   };
 }
 
-const buildImmediateDocumentAssessment = (file: File, rawText = '') => {
-  const fileName = file.name.toLowerCase()
-  const text = `${rawText} ${fileName}`.toLowerCase()
-
-  const categories = [
-    { label: __t("עיקולים/הוצאה לפועל"), keywords: [__t("עיקול"), __t("עיקולים"), __t("עוקל"), __t("הוצאה לפועל"), __t("הוצל\"פ"), __t("הוצלפ"), __t("גבייה"), __t("גביה"), __t("אזהרה"), __t("תיק איחוד"), __t("ריבית פיגורים"), __t("חשבון מוגבל"), __t("צו עיקול"), __t("כונס נכסים"), __t("רשם ההוצאה לפועל")] },
-    { label: __t("הסכם/חוזה"), keywords: [__t("הסכם"), __t("חוזה"), __t("מסגרת"), __t("התחייבות"), __t("מכר"), __t("השכרה"), __t("שירות")] },
-    { label: __t("חיוב חריג"), keywords: [__t("חיוב"), __t("עמלה"), __t("ריבית"), __t("כסף"), __t("חיוב חריג"), __t("סכום"), __t("תשלום")] },
-    { label: __t("דיני עבודה"), keywords: [__t("פיטורים"), __t("שכר"), __t("העסקה"), __t("עבודה"), __t("שימוע"), __t("פיצויים")] },
-    { label: __t("תביעה/כתב תביעה"), keywords: [__t("תביעה"), __t("דרישה"), __t("כתב תביעה"), __t("בקשה"), __t("סעד")] },
-    { label: __t("נזיקין/תאונה"), keywords: [__t("נזק"), __t("תאונה"), __t("פגיעה"), __t("אחריות"), __t("רפואה"), __t("פיצוי")] },
-    { label: __t("ירושה/צוואה"), keywords: [__t("צוואה"), __t("ירושה"), __t("עיזבון"), __t("יורש")] },
-    { label: __t("משפחה"), keywords: [__t("גירושין"), __t("משמורת"), __t("מזונות"), __t("משפחה"), __t("ילד"), __t("בן זוג")] },
-  ]
-
-  const isLiens = /עיקול|עוקל|הוצאה לפועל|הוצל"פ|הוצלפ|גבייה|גביה|כונס|רשם ההוצאה/.test(text)
-
-  const matchedCategories = categories
-    .filter(({ keywords }) => keywords.some((keyword) => text.includes(keyword)))
-    .slice(0, 2)
-
-  const riskSignals = [
-    __t("חיוב"),
-    __t("עמלה"),
-    __t("ריבית"),
-    __t("פיטורים"),
-    __t("פיצוי"),
-    __t("תביעה"),
-    __t("דרישה"),
-    __t("איום"),
-    __t("התראה"),
-    __t("עיקול"),
-    __t("עוקל"),
-    __t("הוצאה לפועל"),
-  ].filter((signal) => text.includes(signal))
-
-  const findings = [
-    matchedCategories.length > 0
-      ? __tt(["זוהתה קטגוריה עיקרית: ", "."], matchedCategories[0].label)
-      : __t("לא זוהתה קטגוריה ברורה; המסמך נבחן כטקסט כללי."),
-    riskSignals.length > 0
-      ? __tt(
-      ["נמצאו סמנים של ", " הדורשים עיון יקרתי."],
-      riskSignals.slice(0, 3).join(', ')
-    )
-      : __t(
-      "לא נמצאו סמנים חריגים מיידיים, אך יש לבצע בדיקה מלאה של פרטי החיוב/ההתחייבות."
-    ),
-    isLiens
-      ? __t(
-      "זוהה הקשר של עיקול / הוצאה לפועל — מומלץ לבדוק אם נגבו כספים מעבר לחוב הפסוק (עיקול ביתר), ואם ננקטו הליכי גבייה כדין."
-    )
-      : __t("המסמך נבדק באמצעות עקרונות של זיהוי סוג מסמך, תוכן, דרישה וסיכון ראשוני."),
-  ]
-
-  const recommendations = isLiens
-    ? [
-        __t(
-          "לבדוק את יתרת החוב המדויקת בתיק ההוצאה לפועל מול הסכומים שנגבו בפועל — כדי לאתר עיקול/גבייה ביתר."
-        ),
-        __t(
-          "לוודא שצו העיקול הומצא כדין ושלא עוקלו כספים מוגנים (משכורת עד תקרה, קצבאות, מזונות)."
-        ),
-        __t(
-          "לשקול הגשת בקשה לרשם ההוצאה לפועל להשבת כספים שנגבו ביתר ו/או להפחתת/עיכוב הליכים."
-        ),
-      ]
-    : [
-        __t("לאמת האם יש סעיף של חיוב, עמלות, ריבית, פיצוי או דרישה כספית."),
-        __t("בדוק את תוקפו, מועדיו, התחייבויותיו ונספחיו של ההסכם או המסמך."),
-        __t("לברר אם נדרשת תגובה בכתב, שימוע, פנייה, דרישה או הגשת מסמך נוסף."),
-      ]
-
-  const riskLevel = riskSignals.length > 0 ? __t("סיכון בינוני-גבוה") : __t("סיכון נמוך-בינוני")
-
-  const summary = matchedCategories.length > 0
-    ? __tt(
-    ["המסמך נראה קשור בעיקר ל-", " והערכת הסיכון הראשונית היא ", "."],
-    matchedCategories[0].label.toLowerCase(),
-    riskLevel
-  )
-    : __t(
-    "המסמך אינו מצביע בבירור על קטגוריה אחת, ולכן ההערכה הראשונית נערכת לפי תוכן כללי של מסמך ודרישה משפטית אפשרית."
-  )
-
-  return {
-    title: __t("דוח בדיקה ראשוני"),
-    summary,
-    findings,
-    recommendations,
-    riskLevel,
-    nextStep: __t(
-      "הדוח הוא הערכה ראשונית מקצועית בלבד ולא ייעוץ משפטי מחייב. לפרטים מדויקים יש צורך בבדיקה מעמיקה יותר."
-    ),
-  };
-}
-
 type QaTopic = {
   label: string
   keywords: string[]
@@ -1003,6 +906,8 @@ function App() {
   const sigDrawing = useRef(false)
   const [lookupSources, setLookupSources] = useState<{ topicLabel: string; sources: { t: string; u: string }[]; forms?: { t: string; u: string }[] } | null>(null)
   const [aiResult, setAiResult] = useState<{
+    documentType?: string
+    keyDetails?: string[]
     bottomLine?: string
     plainSummary?: string
     caseDecoding?: string
@@ -1516,19 +1421,27 @@ function App() {
     }
 
     setUploadedFile(file)
+    setAiResult(null)
+    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(file.name)
 
-    let textPreview = ''
-    try {
-      if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-        textPreview = await file.text()
-      }
-    } catch {
-      textPreview = ''
-    }
-
-    const immediateAssessment = buildImmediateDocumentAssessment(file, textPreview)
-    setReviewResult(immediateAssessment)
-    setLookupSources(getLegalSources(`${file.name} ${textPreview}`))
+    // Neutral "received" state. The document TYPE and content are decoded from the actual
+    // content (OCR/vision on images, text extraction on files) when the user runs the check —
+    // never guessed from the file name (which is meaningless for photos).
+    setReviewResult({
+      title: __t("המסמך נקלט — מוכן לפענוח"),
+      summary: isImage
+        ? __t("קלטנו את התמונה. בלחיצה על \"בדוק מסמך עכשיו\" המערכת תקרא את הטקסט מהתמונה (OCR), תזהה את סוג המסמך, ותפענח אותו לעומק.")
+        : __t("קלטנו את הקובץ. בלחיצה על \"בדוק מסמך עכשיו\" המערכת תחלץ את הטקסט, תזהה את סוג המסמך, ותפענח אותו לעומק."),
+      findings: [
+        isImage
+          ? __t("לצילום מיטבי: אור טוב, זווית ישרה, וכל המסמך בתוך המסגרת — כך הקריאה מדויקת יותר.")
+          : __t("נתמכים: PDF, Word, תמונה וטקסט. אפשר להעלות מספר עמודים כקובץ אחד."),
+      ],
+      recommendations: [__t("סמנו את תיבת ההסכמה ולחצו \"בדוק מסמך עכשיו\" לקבלת פענוח מלא.")],
+      riskLevel: __t("ממתין לבדיקה"),
+      nextStep: __t("הפענוח המקצועי — זיהוי סוג המסמך, ניתוח, זכויות וצעדים — יתבצע מיד עם הפעלת הבדיקה."),
+    })
+    setLookupSources(null)
   }
 
   // After first-time privacy consent, resume the check the user was trying to run.
@@ -1624,34 +1537,19 @@ function App() {
       }
     })
 
-    const safeName = uploadedFile.name.toLowerCase()
-    const isLegal = /contract|agreement|employment|claim|settlement|lawsuit|document|פיטורים|הסכם|תביעה|נזיקין|שכר/i.test(safeName)
-
-    const instantAssessment = buildImmediateDocumentAssessment(uploadedFile, uploadedFile.name)
+    // Clean receipt note. The document TYPE, decoding, rights and steps are produced by the
+    // content-based AI analysis (OCR/vision) below — shown in the rich answer, not guessed here.
     setReviewResult({
-      title: __t("המסמך נבדק מיידית"),
-      summary: isLegal
-        ? __tt([
-        "",
-        " המסמך נראה רלוונטי לייעוץ משפטי ראשוני, אך אינו מהווה חוות דעת מחייבת."
-      ], instantAssessment.summary)
-        : __tt([
-        "",
-        " המערכת בוחנת את המסמך באופן מיידי, ללא צורך להמתין לתגובה של צוות המשרד."
-      ], instantAssessment.summary),
+      title: __t("המסמך נקלט — מפענחים אותו"),
+      summary: __t("המערכת קוראת את תוכן המסמך, מזהה את סוגו ומפענחת אותו. הפענוח המלא — סוג המסמך, ניתוח, זכויות, מסמכים, מועדים וטעויות נפוצות — יופיע כאן למטה תוך כמה שניות."),
       findings: [
-        __t("המסמך נקלט בהצלחה במערכת."),
-        savedByApi
-          ? __t("המסמך נשמר גם בשרת ונקשר לתיק הלקוח.")
-          : __t("השרת אינו זמין כרגע, המסמך נשמר מקומית עד לחיבור מחדש."),
-        __t("הניתוח המיידי מבוצע על פי סוג המסמך, תוכן ונושא ההליך."),
-        __t("ההערכה היא ראשונית ולא מהווה ייעוץ משפטי מחייב."),
+        __t("המסמך נקלט בהצלחה."),
+        savedByApi ? __t("נשמר בשרת ונקשר לתיק.") : __t("נשמר מקומית (השרת אינו זמין כרגע)."),
+        __t("הפענוח מבוסס על תוכן המסמך עצמו — לא על שם הקובץ."),
       ],
-      recommendations: instantAssessment.recommendations,
-      riskLevel: instantAssessment.riskLevel,
-      nextStep: __t(
-        "הערכת המסמך התבצעה באופן מיידי. ניתן להמשיך עם בדיקה מעמיקה יותר או לשלוח את הפרטים להמשך טיפול."
-      ),
+      recommendations: [__t("המתן/י לתוצאת הפענוח המלאה שתופיע מיד למטה.")],
+      riskLevel: __t("בפענוח"),
+      nextStep: __t("הפענוח הוא הערכה ראשונית ואינו ייעוץ משפטי מחייב. לבדיקה מדויקת ניתן לפנות לשירות מלא."),
     })
   }
 
@@ -2828,6 +2726,20 @@ function App() {
                   </div>
                   {aiResult.riskLevel && <span className={`risk-pill risk-${aiResult.riskLevel}`}>{__t("רמת סיכון:") + " "}{aiResult.riskLevel}</span>}
                 </div>
+
+                {aiResult.documentType && (
+                  <div className="doc-type-banner">
+                    <span className="doc-type-label">{__t("📄 סוג המסמך שזוהה")}</span>
+                    <strong className="doc-type-value">{aiResult.documentType}</strong>
+                  </div>
+                )}
+
+                {Array.isArray(aiResult.keyDetails) && aiResult.keyDetails.length > 0 && (
+                  <div className="doc-details">
+                    <span className="doc-details-label">{__t("🔎 פרטים שזוהו במסמך")}</span>
+                    <ul>{aiResult.keyDetails.map((d, i) => (<li key={i}>{d}</li>))}</ul>
+                  </div>
+                )}
 
                 {aiResult.bottomLine && (
                   <div className="answer-bottomline">

@@ -2258,3 +2258,16 @@ html[dir="rtl"] .news-ticker-track { animation-name: news-scroll-rtl; }
 .trust-sources a:hover { color: #b4884d; text-decoration: underline; }
 .trust-credentials { margin-top: 16px; font-size: 13px; color: #64748b; font-weight: 600; }
 @media (max-width: 640px) { .trust-badge { font-size: 13px; padding: 9px 14px; } .trust-sources a { font-size: 12.5px; } }
+
+/* ---- document decoding: type banner + key details ---- */
+.doc-type-banner {
+  margin: 14px 18px 0; padding: 12px 16px; border-radius: 14px;
+  background: linear-gradient(120deg,#16324F,#1E4A6B); color: #fff;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.doc-type-label { font-size: 12px; font-weight: 800; color: #D8B778; letter-spacing: .03em; }
+.doc-type-value { font-size: 18px; font-weight: 900; }
+.doc-details { margin: 12px 18px 0; padding: 12px 16px; border-radius: 12px; background: #fbf7ef; border: 1px solid #e6d6b8; }
+.doc-details-label { display: block; font-size: 13px; font-weight: 800; color: #7a5a24; margin-bottom: 4px; }
+.doc-details ul { margin: 4px 0 0; padding-inline-start: 20px; }
+.doc-details li { color: #475569; font-size: 14px; line-height: 1.7; }
