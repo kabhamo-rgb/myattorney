@@ -850,6 +850,32 @@ const getAuditActorLabel = (actor?: string) => {
   return __t("לא צוין");
 }
 
+// Downscale a photographed document before upload: phone photos are often huge (5–15MB),
+// which slows/fails the vision request. Resize to <=1600px and JPEG ~0.82 — keeps OCR quality
+// while cutting size dramatically. Falls back to the original file on any error (e.g. HEIC).
+async function downscaleImage(file: File, maxDim = 1600, quality = 0.82): Promise<File> {
+  try {
+    if (!file.type.startsWith('image/')) return file
+    const bmp = await createImageBitmap(file)
+    const longest = Math.max(bmp.width, bmp.height)
+    const scale = longest > maxDim ? maxDim / longest : 1
+    if (scale >= 1 && file.size < 2.5 * 1024 * 1024) { bmp.close?.(); return file }
+    const w = Math.round(bmp.width * scale)
+    const h = Math.round(bmp.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w; canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) { bmp.close?.(); return file }
+    ctx.drawImage(bmp, 0, 0, w, h)
+    bmp.close?.()
+    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+    if (!blob || blob.size === 0) return file
+    return new File([blob], 'document.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
 function App() {
   const [formData, setFormData] = useState(initialForm)
   const [submitted, setSubmitted] = useState(false)
@@ -1557,38 +1583,54 @@ function App() {
     setAiLoading(true)
     setAiResult(null)
     const startedAt = Date.now()
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), 50000)
     try {
       let response: Response
       if (opts.file) {
+        const toSend = await downscaleImage(opts.file)
         const body = new FormData()
-        body.append('file', opts.file)
+        body.append('file', toSend)
         if (opts.question) body.append('question', opts.question)
-        response = await fetch(`${apiBaseUrl}/api/legal-analyze`, { method: 'POST', body })
+        response = await fetch(`${apiBaseUrl}/api/legal-analyze`, { method: 'POST', body, signal: controller.signal })
       } else {
         response = await fetch(`${apiBaseUrl}/api/legal-analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question: opts.question || '' }),
+          signal: controller.signal,
         })
       }
-      const data = await response.json()
+      const data = await response.json().catch(() => null)
       if (data && data.analysis) setAiResult(data.analysis)
       else {
-        // Never leave the answer area blank: show a graceful fallback so the result
-        // doesn't "disappear" when the deep AI analysis is momentarily unavailable.
+        // Never leave the answer area blank. TEMP diagnostic: surface why the deep decode failed.
+        let diag = ''
+        if (!response.ok) diag = `HTTP ${response.status}`
+        else if (data && data.needsKey) diag = 'needsKey — חסר/לא תקין GEMINI_API_KEY בשרת'
+        else if (data && data.aiError) diag = `aiError ${data.status || ''}: ${String(data.detail || '').slice(0, 160)}`
+        else if (data && typeof data.raw === 'string') diag = 'raw — המודל החזיר טקסט לא-JSON: ' + data.raw.slice(0, 160)
+        else if (!data) diag = 'תשובת שרת לא תקינה'
+        else diag = 'לא התקבל ניתוח מהשרת'
         setAiResult({
-          bottomLine: __t("הבדיקה הראשונית שלך מוכנה ומוצגת למטה. ניתוח מעמיק נוסף אינו זמין ברגע זה."),
-          plainSummary: __t("קיבלת מיון ראשוני עם ממצאים, המלצות ומקורות. ניתן לנסות שוב בעוד רגע, להעלות מסמך לבדיקה מדויקת יותר, או לפנות למשרד להמשך טיפול."),
+          bottomLine: __t("הבדיקה הראשונית מוצגת למטה. הפענוח המעמיק לא הושלם כרגע."),
+          plainSummary: __t("נסה/י שוב, צלם/י שוב באור טוב וישר, או פנה/י למשרד להמשך טיפול."),
+          caseDecoding: 'אבחון (זמני): ' + diag,
           disclaimer: __t("מידע כללי בלבד — אינו ייעוץ משפטי מחייב."),
         })
       }
-    } catch {
+    } catch (e: unknown) {
+      const aborted = e instanceof DOMException && e.name === 'AbortError'
       setAiResult({
-        bottomLine: __t("הבדיקה הראשונית שלך מוכנה ומוצגת למטה."),
-        plainSummary: __t("אירעה תקלה זמנית בניתוח המעמיק. ניתן לנסות שוב, או לפנות למשרד להמשך טיפול."),
+        bottomLine: __t("הבדיקה הראשונית מוצגת למטה."),
+        plainSummary: aborted
+          ? __t("הפענוח לקח יותר מדי זמן ונעצר. נסה/י שוב, או צלם/י מסמך בהיר וברור יותר.")
+          : __t("אירעה תקלה זמנית בניתוח המעמיק. ניתן לנסות שוב, או לפנות למשרד להמשך טיפול."),
+        caseDecoding: 'אבחון (זמני): ' + (aborted ? 'timeout (50s) — הבקשה נעצרה' : String((e as Error)?.message || e).slice(0, 160)),
         disclaimer: __t("מידע כללי בלבד — אינו ייעוץ משפטי מחייב."),
       })
     } finally {
+      window.clearTimeout(timer)
       // Keep the animated stages on screen for at least ~4.5s so the experience is visible.
       const elapsed = Date.now() - startedAt
       const remaining = Math.max(0, 4500 - elapsed)
