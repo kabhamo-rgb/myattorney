@@ -880,6 +880,7 @@ function App() {
   const [formData, setFormData] = useState(initialForm)
   const [submitted, setSubmitted] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadedPreview, setUploadedPreview] = useState<string | null>(null)
   const [reviewResult, setReviewResult] = useState<{
     title: string
     summary: string
@@ -1440,6 +1441,7 @@ function App() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    setUploadedPreview((prev) => { if (prev) { try { URL.revokeObjectURL(prev) } catch { /* noop */ } } return null })
     if (!file) {
       setUploadedFile(null)
       setReviewResult(null)
@@ -1449,6 +1451,10 @@ function App() {
     setUploadedFile(file)
     setAiResult(null)
     const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(file.name)
+    // Visual confirmation that the capture worked — a thumbnail for images.
+    if (file.type.startsWith('image/')) {
+      try { setUploadedPreview(URL.createObjectURL(file)) } catch { /* noop */ }
+    }
 
     // Neutral "received" state. The document TYPE and content are decoded from the actual
     // content (OCR/vision on images, text extraction on files) when the user runs the check —
@@ -2644,6 +2650,21 @@ function App() {
                     <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} />
                   </label>
                 </div>
+                {uploadedFile && (
+                  <div className="upload-preview" aria-live="polite">
+                    {uploadedPreview
+                      ? <img className="upload-preview-thumb" src={uploadedPreview} alt={__t("תצוגה מקדימה של המסמך")} />
+                      : <span className="upload-preview-fileicon">📄</span>}
+                    <div className="upload-preview-info">
+                      <span className="upload-preview-check">✓ {__t("המסמך נקלט בהצלחה")}</span>
+                      <span className="upload-preview-name">{uploadedFile.name}</span>
+                    </div>
+                    <label className="upload-preview-replace">
+                      {__t("החלף")}
+                      <input type="file" accept=".pdf,.doc,.docx,.txt,.rtf,image/*" onChange={handleFileUpload} />
+                    </label>
+                  </div>
+                )}
                 <label className="doc-consent-line">
                   <input type="checkbox" checked={docConsent} onChange={(e) => setDocConsent(e.target.checked)} />
                   <span>{__t("אני מאשר/ת את עיבוד המסמך לצורך מיון ובדיקה, לרבות באמצעות ספקי מחשוב ו-AI מטעם המשרד, בהתאם למדיניות הפרטיות. ידוע לי שאין להעלות מידע שאינו נחוץ או מסמך שאין לי זכות למסור.")}</span>

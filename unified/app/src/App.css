@@ -2271,3 +2271,23 @@ html[dir="rtl"] .news-ticker-track { animation-name: news-scroll-rtl; }
 .doc-details-label { display: block; font-size: 13px; font-weight: 800; color: #7a5a24; margin-bottom: 4px; }
 .doc-details ul { margin: 4px 0 0; padding-inline-start: 20px; }
 .doc-details li { color: #475569; font-size: 14px; line-height: 1.7; }
+
+/* ---- upload capture confirmation + preview ---- */
+.upload-preview {
+  display: flex; align-items: center; gap: 14px; margin-top: 12px;
+  padding: 12px 14px; border-radius: 14px; background: #ecfdf5; border: 1px solid #6ee7b7;
+}
+.upload-preview-thumb {
+  width: 64px; height: 64px; object-fit: cover; border-radius: 10px;
+  border: 1px solid #bbf7d0; flex: 0 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+.upload-preview-fileicon { font-size: 40px; flex: 0 0 auto; }
+.upload-preview-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.upload-preview-check { font-weight: 800; color: #047857; font-size: 14.5px; }
+.upload-preview-name { font-size: 13px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-preview-replace {
+  flex: 0 0 auto; cursor: pointer; font-size: 13px; font-weight: 700; color: #16324F;
+  background: #fff; border: 1px solid #cbd5e1; border-radius: 999px; padding: 6px 14px;
+}
+.upload-preview-replace input { display: none; }
+.upload-preview-replace:hover { border-color: #b4884d; color: #b4884d; }
