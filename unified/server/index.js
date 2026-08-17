@@ -465,7 +465,7 @@ const callLLM = async (system, userContent, images = []) => {
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: system }] },
               contents: [{ role: 'user', parts: [{ text: userContent }, ...images.map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.base64 } }))] }],
-              generationConfig: { temperature: 0.3, maxOutputTokens: 3600, responseMimeType: 'application/json' },
+              generationConfig: { temperature: 0.3, maxOutputTokens: 6500, responseMimeType: 'application/json' },
             }),
           }, 14000)
         } catch (e) {
@@ -491,7 +491,7 @@ const callLLM = async (system, userContent, images = []) => {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 1800, system, messages: [{ role: 'user', content: userContent }] }),
+        body: JSON.stringify({ model, max_tokens: 3600, system, messages: [{ role: 'user', content: userContent }] }),
       })
       if (!resp.ok) {
         const t = await resp.text().catch(() => '')
@@ -511,7 +511,7 @@ const callLLM = async (system, userContent, images = []) => {
           model,
           messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
           response_format: { type: 'json_object' },
-          max_tokens: 1800,
+          max_tokens: 3600,
         }),
       })
       if (!resp.ok) {
@@ -552,9 +552,10 @@ app.post('/api/legal-analyze', uploadMem.single('file'), async (req, res) => {
     const system = `אתה עוזר משפטי מקצועי בישראל, המבסס תשובות על הדין הישראלי ועל מקורות ציבוריים חינמיים. עליך לפענח את המקרה מהמסמך/השאלה, ולהסביר אותו בשתי רמות: (א) בשפה פשוטה ויומיומית עבור מי שאינו בקיא במשפטים, ו-(ב) בניתוח מקצועי. בנוסף הצע צעדים וסעדים — הכל כמידע כללי שאינו ייעוץ משפטי מחייב.
 ${SOURCE_HINTS}
 כללים: בסס עצמך על הדין הישראלי ועל עקרונות פסיקה מקובלים; ב-legalAnalysis ציין במדויק את שמות החוקים והסעיפים הרלוונטיים (למשל: חוק ההוצאה לפועל, התשכ״ז-1967 — סעיף 19 (טענת פרעתי); חוק הגנת השכר, התשי״ח-1958 ותקנותיו (תקרת עיקול משכורת); חוק פיצויי פיטורים, התשכ״ג-1963; חוק הודעה מוקדמת לפיטורים ולהתפטרות, התשס״א-2001; חוק עבודת נשים, התשי״ד-1954 (הגנה על עובדת בהיריון); חוק שעות עבודה ומנוחה, התשי״א-1951; חוק שכר מינימום, התשמ״ז-1987; חוק ההתיישנות, התשי״ח-1958), אך אל תמציא מספרי תיקים או ציטוטי פסיקה ספציפיים; אם בדיקה מעמיקה במאגר פסיקה מסחרי (כגון נבו) עשויה לחדד — ציין זאת כצעד; אם המידע חלקי — ציין מה חסר; שמור על טון מקצועי, אמפתי ומכבד; ב-plainSummary אסור להשתמש בז'רגון משפטי — הסבר כמו לחבר; ודא שה-JSON שלם וסגור.
-מגבלות אורך: bottomLine — משפט אחד; plainSummary — 2 עד 4 משפטים (עד ~70 מילים); כל שאר שדות הטקסט עד ~90 מילים.
+חשוב — תן ללקוח כמה שיותר מידע מהותי, ברור ופרקטי. מלא כל שדה שרלוונטי למקרה (אל תשאיר ריק אם יש מה לומר). תן פירוט אמיתי: שמות חוקים וסעיפים מדויקים, תקרות וסכומים כשידועים (למשל תקרת עיקול שכר, סכומי קצבה מוגנים), מועדים קונקרטיים (מועדי תגובה, תקופות התיישנות), ורשימות מלאות ולא חלקיות.
+מגבלות אורך: bottomLine — משפט אחד; plainSummary — 2 עד 4 משפטים; caseDecoding, legalAnalysis, whatToExpect — עד ~120 מילים כל אחד; פריטי רשימה — משפט עד שניים. תן לפחות 3–5 פריטים בכל רשימה רלוונטית.
 החזר אך ורק JSON תקין במבנה הבא (ללא טקסט נוסף):
-{"bottomLine":"משפט אחד ברור עם השורה התחתונה — מה המצב ומה כדאי לעשות","plainSummary":"הסבר בשפה פשוטה וברורה, 2-4 משפטים, שמסביר למי שלא מבין במשפטים מה קרה, מה זה אומר עבורו ומדוע זה חשוב — בלי מונחים משפטיים","caseDecoding":"פענוח מקצועי וממוקד של המקרה","legalAnalysis":"ניתוח משפטי מקצועי המבוסס על חוק ועקרונות פסיקה","steps":["צעד מעשי 1","צעד מעשי 2","צעד מעשי 3"],"remedies":["סעד אפשרי 1","סעד אפשרי 2"],"sources":[{"title":"שם המקור","url":"קישור"}],"riskLevel":"נמוך/בינוני/גבוה","disclaimer":"מידע כללי בלבד, אינו ייעוץ משפטי מחייב."}`
+{"bottomLine":"משפט אחד ברור עם השורה התחתונה — מה המצב ומה כדאי לעשות","plainSummary":"הסבר בשפה פשוטה וברורה, 2-4 משפטים, למי שלא מבין במשפטים — מה קרה, מה זה אומר עבורו ומדוע זה חשוב, בלי מונחים משפטיים","caseDecoding":"פענוח מקצועי וממוקד של המקרה","legalAnalysis":"ניתוח משפטי מקצועי המבוסס על חוק ועקרונות פסיקה","relevantLaws":[{"law":"שם החוק המדויק + שנה + מספר סעיף","explanation":"מה הסעיף קובע ואיך הוא חל על המקרה, בשפה פשוטה"}],"rights":["זכות קונקרטית שיש ללקוח במצב זה","זכות נוספת"],"steps":["צעד מעשי 1","צעד מעשי 2","צעד מעשי 3","צעד מעשי 4"],"documentsNeeded":["מסמך שכדאי לאסוף 1","מסמך 2","מסמך 3"],"deadlines":["מועד/תקופה קריטית שחשוב לשים לב אליה (למשל מועד תגובה, התיישנות)"],"whatToExpect":"מה צפוי בתהליך ובאילו שלבים ולוחות זמן כלליים","remedies":["סעד אפשרי 1","סעד אפשרי 2"],"commonMistakes":["טעות נפוצה שכדאי להימנע ממנה 1","טעות 2"],"faq":[{"q":"שאלה נפוצה רלוונטית","a":"תשובה קצרה וברורה"},{"q":"שאלה נוספת","a":"תשובה"}],"sources":[{"title":"שם המקור","url":"קישור"}],"riskLevel":"נמוך/בינוני/גבוה","disclaimer":"מידע כללי בלבד, אינו ייעוץ משפטי מחייב."}`
 
     const userContent = images.length > 0
       ? `שאלת/פניית המשתמש: ${question || '(המשתמש צילם/העלה תמונת מסמך לבדיקה)'}
