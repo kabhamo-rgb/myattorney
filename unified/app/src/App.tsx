@@ -1584,7 +1584,7 @@ function App() {
     setAiResult(null)
     const startedAt = Date.now()
     const controller = new AbortController()
-    const timer = window.setTimeout(() => controller.abort(), 50000)
+    const timer = window.setTimeout(() => controller.abort(), 90000)
     try {
       let response: Response
       if (opts.file) {
