@@ -537,61 +537,79 @@ const toNumber = (v: string) => {
 const formatILS = (n: number) =>
   '₪' + Math.round(n).toLocaleString('he-IL')
 
-// General (non-binding) over-garnishment estimate. Core is simple arithmetic;
-// protected-income flags are qualitative. Not legal advice.
+// Over-garnishment estimate engine. All figures are computed ONLY from the values the
+// client entered — the wording makes that explicit so responsibility rests on the input,
+// not on the site. Not legal advice; a definitive check needs the official case printout.
 const buildGarnishmentAssessment = (input: GarnishmentInput) => {
   const debt = toNumber(input.originalDebt)
   const collected = toNumber(input.totalCollected)
   const extra = toNumber(input.extraCharges)
   const lawfulTotal = debt + extra
-  const over = collected - lawfulTotal
+  const over = collected - lawfulTotal            // collected beyond debt + client-stated lawful additions
+  const beyondDebt = collected - debt             // collected above the original principal
 
   const protectedIncome = input.incomeType === 'benefit'
+  const estimatedOverpaid = over > 0 ? Math.round(over) : 0
+  const amountBeyondDebt = (over <= 0 && beyondDebt > 0) ? Math.round(beyondDebt) : 0
+
   const flags: string[] = []
-  if (over > 0) flags.push(__tt(
-    ["לפי הנתונים, ייתכן שנגבו ממך כ-", " מעבר לחוב ולתוספות שציינת."],
-    formatILS(over)
+  if (estimatedOverpaid > 0) flags.push(__tt(
+    ["לפי הנתונים שהזנת, נגבו כ-", " מעבר לחוב ולתוספות שציינת — סכום שייתכן וניתן לפעול להשבתו."],
+    formatILS(estimatedOverpaid)
   ))
-  if (over <= 0 && collected > 0) flags.push(__t(
-    "לפי הנתונים שהוזנו לא זוהתה גבייה ביתר מובהקת — אך ריביות/הוצאות שנוספו שלא כדין עשויות לשנות זאת."
+  if (amountBeyondDebt > 0) flags.push(__tt(
+    ["לפי הנתונים שהזנת, נגבו כ-", " מעבר לחוב המקורי. חלקם עשויים להיות ריבית והוצאות — יש לוודא שחושבו כדין, שכן לא אחת הם נגבים ביתר."],
+    formatILS(amountBeyondDebt)
   ))
   if (protectedIncome) flags.push(__t(
-    "ציינת שההכנסה היא קצבה — קצבאות רבות מוגנות מעיקול. ייתכן שעוקלו כספים מוגנים שיש להשיב."
+    "ציינת שההכנסה היא קצבה — קצבאות רבות מוגנות מעיקול לפי חוק. ייתכן שעוקלו כספים מוגנים שניתן להשיב, גם אם אריתמטית לא זוהתה גבייה ביתר."
   ))
-  if (debt === 0) flags.push(__t("לא הוזן סכום חוב מקורי — כדי לדייק, הזן את סכום החוב הפסוק."))
+  if (extra > 0 && debt > 0 && extra >= debt * 0.5) flags.push(__t(
+    "הריבית/ההוצאות שציינת גבוהות ביחס לחוב — נקודה מהותית שמצדיקה בדיקת חישוב מדוקדקת מול תדפיס התיק."
+  ))
+  if (debt === 0) flags.push(__t("לא הוזן סכום חוב מקורי — להשלמת הבדיקה הזן/י את סכום החוב הפסוק."))
 
-  const likelyRefund = over > 0
+  const likelyRefund = estimatedOverpaid > 0
+  const worthChecking = likelyRefund || amountBeyondDebt > 0 || protectedIncome
+
   const verdict = likelyRefund
-    ? __t("סביר שנגבה ביתר — מומלץ לבדוק החזר")
-    : protectedIncome
-      ? __t("ייתכן שעוקלו כספים מוגנים — כדאי בדיקה")
-      : __t("לא זוהתה גבייה ביתר מובהקת")
+    ? __t("סביר שנגבה ביתר — מומלץ לפעול להחזר")
+    : amountBeyondDebt > 0
+      ? __t("נגבה מעבר לחוב — מומלץ לבדוק את חישוב הריבית וההוצאות")
+      : protectedIncome
+        ? __t("ייתכן שעוקלו כספים מוגנים — מומלץ לבדוק")
+        : __t("לא זוהתה גבייה ביתר לפי הנתונים שהזנת")
 
-  const riskLevel = likelyRefund || protectedIncome ? __t("דורש בדיקה דחופה") : __t("תקין לכאורה")
+  const riskLevel = likelyRefund ? __t("גבוה") : worthChecking ? __t("בינוני") : __t("נמוך")
 
   return {
     title: __t("תוצאת בדיקת עיקול"),
     verdict,
-    estimatedOverpaid: over > 0 ? Math.round(over) : 0,
+    estimatedOverpaid,
+    amountBeyondDebt,
     riskLevel,
     summary: likelyRefund
       ? __tt([
-      "לפי הבדיקה הכללית, ייתכן שנגבו ממך כ-",
-      " ביתר. ניתן לבחון הגשת בקשה להחזר."
-    ], formatILS(over))
-      : __t(
-      "לפי הנתונים שהוזנו, לא זוהתה גבייה ביתר ברורה. עדיין מומלץ לוודא את פירוט החיובים בתיק."
-    ),
-    findings: flags.length ? flags : [__t("לא זוהו סימנים חריגים לפי הנתונים שהוזנו.")],
+      "מנוע הבדיקה זיהה, על סמך הנתונים שהזנת, פער של כ-",
+      " בין הסכום שנגבה לבין החוב והתוספות. ייתכן שסכום זה נגבה ביתר וניתן לפעול להשבתו."
+    ], formatILS(estimatedOverpaid))
+      : amountBeyondDebt > 0
+        ? __tt([
+        "מנוע הבדיקה זיהה, על סמך הנתונים שהזנת, כי נגבו כ-",
+        " מעבר לחוב המקורי. יש לבדוק אם הריבית וההוצאות חושבו כדין — לעיתים נגבים סכומים ביתר שניתן להשיב."
+      ], formatILS(amountBeyondDebt))
+        : protectedIncome
+          ? __t("על סמך הנתונים שהזנת לא זוהתה גבייה ביתר אריתמטית, אך מאחר שההכנסה היא קצבה מוגנת — מומלץ לבדוק אם עוקלו כספים שאסור לעקל, שאותם ניתן להשיב.")
+          : __t("על סמך הנתונים שהזנת לא זוהתה גבייה ביתר. עדיין מומלץ לוודא את פירוט החיובים בתיק מול תדפיס רשמי.")
+    ,
+    findings: flags.length ? flags : [__t("לא זוהו סימנים חריגים לפי הנתונים שהזנת.")],
     recommendations: [
-      __t(
-        "להוציא \"תדפיס תיק\" מלא ממערכת ההוצאה לפועל ולהשוות מול הסכומים שנגבו בפועל."
-      ),
-      __t("לוודא שלא עוקלו כספים מוגנים (קצבאות, שכר עד התקרה המוגנת, מזונות)."),
-      likelyRefund ? __t("להגיש בקשה לרשם ההוצאה לפועל להשבת כספים שנגבו ביתר.") : __t("לשמור תיעוד ולעקוב אחר חיובים עתידיים בתיק."),
+      __t("להוציא \"תדפיס תיק\" מלא ממערכת ההוצאה לפועל ולהשוות מול הסכומים שנגבו בפועל."),
+      __t("לוודא שלא עוקלו כספים מוגנים (קצבאות ביטוח לאומי, שכר עד התקרה המוגנת, דמי מזונות)."),
+      (likelyRefund || amountBeyondDebt > 0) ? __t("לפעול להגשת בקשה לרשם ההוצאה לפועל להשבת כספים שנגבו ביתר.") : __t("לשמור תיעוד ולעקוב אחר חיובים עתידיים בתיק."),
     ],
     nextStep: __t(
-      "בדיקה כללית ומשוערת בלבד, אינה ייעוץ משפטי מחייב. לקבלת החזר ניתן להגיש בקשה — לאחר רישום ואישור מפורש שלך המשרד יטפל בבקשה."
+      "התוצאה מבוססת אך ורק על הנתונים שהזנת ומהווה הערכה ראשונית של מנוע הבדיקה — אינה בדיקה משפטית ממצה, אינה ייעוץ משפטי ואינה מחייבת. לבדיקה ודאית נדרש תדפיס תיק ההוצאה לפועל. לפעולה להחזר — לאחר רישום ואישורך המפורש, המשרד יבחן ויטפל בבקשה."
     ),
   };
 }
@@ -1184,9 +1202,9 @@ function App() {
     return () => clearInterval(id)
   }, [aiLoading, garnishProcessing])
 
-  // Count-up animation for the estimated over-collected amount.
+  // Count-up animation for the estimated over-collected amount (or amount beyond the debt).
   useEffect(() => {
-    const target = Number(garnishResult?.estimatedOverpaid) || 0
+    const target = Number(garnishResult?.estimatedOverpaid) || Number(garnishResult?.amountBeyondDebt) || 0
     if (!target) { setCountUp(0); return }
     let raf = 0
     const start = performance.now()
@@ -2806,17 +2824,24 @@ function App() {
                     <div className="risk-gauge-labels"><span>{__t("נמוך")}</span><span>{__t("בינוני")}</span><span>{__t("גבוה")}</span></div>
                   </div>
 
-                  {garnishResult.estimatedOverpaid > 0 && (
+                  {garnishResult.estimatedOverpaid > 0 ? (
                     <div className="overpaid-hero">
-                      <span className="overpaid-hero-label">{__t("הערכת גבייה ביתר")}</span>
+                      <span className="overpaid-hero-label">{__t("ייתכן שמגיע לך החזר של עד")}</span>
                       <strong className="overpaid-hero-num">{'₪' + countUp.toLocaleString('he-IL')}</strong>
-                      <span className="overpaid-hero-sub">{__t("סכום פוטנציאלי להחזר")}</span>
+                      <span className="overpaid-hero-sub">{__t("סכום פוטנציאלי להשבה — לפי הנתונים שהזנת")}</span>
                     </div>
-                  )}
+                  ) : garnishResult.amountBeyondDebt > 0 ? (
+                    <div className="overpaid-hero overpaid-hero-verify">
+                      <span className="overpaid-hero-label">{__t("נגבה מעבר לחוב המקורי")}</span>
+                      <strong className="overpaid-hero-num">{'₪' + countUp.toLocaleString('he-IL')}</strong>
+                      <span className="overpaid-hero-sub">{__t("מומלץ לבדוק אם חושב כדין — ייתכן שחלקו ניתן להשבה")}</span>
+                    </div>
+                  ) : null}
                 </div>
-                {garnishResult.estimatedOverpaid > 0 && (
+                {(garnishResult.estimatedOverpaid > 0 || garnishResult.amountBeyondDebt > 0) && (
                   <p className="success-fee-note">💚 <strong>{__t("הבדיקה חינם · ללא תשלום מראש")}</strong>{" " + __t("— אנחנו מטפלים בהגשת הבקשה, ותשלמו עמלת הצלחה של") + " "}<strong>{__t("25% + מע״מ")}</strong>{" " + __t("רק מהסכום שנחזיר לכם בפועל. ללא זכייה — אין תשלום.")}</p>
                 )}
+                <div className="engine-badge">{__t("🔍 מנוע בדיקת עיקול · תוצאה מבוססת על הנתונים שהזנת")}</div>
                 <p className="verdict-line">{garnishResult.verdict}</p>
                 <p>{garnishResult.summary}</p>
                 <div className="result-block">
