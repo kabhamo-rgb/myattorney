@@ -1887,6 +1887,23 @@ input, select, textarea { font-size: 16px; } /* prevents iOS zoom-on-focus */
 .ai-answer .result-block p, .ai-answer .result-block li { color: #334155; font-size: 14.5px; line-height: 1.8; }
 .ai-answer .result-block ul { margin: 4px 0; padding-inline-start: 20px; }
 .ai-answer .tool-disclaimer { margin: 14px 18px; font-size: 12.5px; color: #64748b; }
+
+/* ---- enriched answer sections ---- */
+.ai-answer .laws-block { background: #fbf7ef; border: 1px solid #e6d6b8; border-radius: 12px; padding: 12px 14px; }
+.ai-answer .laws-list { list-style: none; padding-inline-start: 0; margin: 6px 0 0; }
+.ai-answer .laws-list li { padding: 7px 0; border-bottom: 1px dashed #e6d6b8; }
+.ai-answer .laws-list li:last-child { border-bottom: 0; }
+.ai-answer .law-name { font-weight: 800; color: #7a5a24; }
+.ai-answer .law-exp { color: #475569; }
+.ai-answer .deadlines-block { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 12px 14px; }
+.ai-answer .deadlines-block li { color: #9a3412; }
+.ai-answer .mistakes-block { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 12px 14px; }
+.ai-answer .mistakes-block li { color: #991b1b; }
+.ai-answer .faq-block { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; }
+.ai-answer .faq-item { padding: 6px 0; border-bottom: 1px solid #eef2f7; }
+.ai-answer .faq-item:last-child { border-bottom: 0; }
+.ai-answer .faq-q { font-weight: 800; color: #16324F; margin: 0 0 2px; }
+.ai-answer .faq-a { margin: 0; color: #475569; }
 .ai-answer .result-cta { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 18px 18px; }
 
 /* ================= "We'll do everything" CTA + authorization modal ================= */

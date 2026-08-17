@@ -898,8 +898,15 @@ function App() {
     plainSummary?: string
     caseDecoding?: string
     legalAnalysis?: string
+    relevantLaws?: { law?: string; explanation?: string }[]
+    rights?: string[]
     steps?: string[]
     remedies?: string[]
+    deadlines?: string[]
+    documentsNeeded?: string[]
+    whatToExpect?: string
+    commonMistakes?: string[]
+    faq?: { q?: string; a?: string }[]
     sources?: { title?: string; url?: string }[]
     riskLevel?: string
     disclaimer?: string
@@ -2699,14 +2706,51 @@ function App() {
                   {aiResult.legalAnalysis && (
                     <div className="result-block"><strong>{__t("ניתוח משפטי")}</strong><p>{aiResult.legalAnalysis}</p></div>
                   )}
+                  {Array.isArray(aiResult.relevantLaws) && aiResult.relevantLaws.length > 0 && (
+                    <div className="result-block laws-block"><strong>{__t("⚖️ החוקים והסעיפים הרלוונטיים")}</strong>
+                      <ul className="laws-list">{aiResult.relevantLaws.map((l, i) => (
+                        <li key={i}><span className="law-name">{l.law}</span>{l.explanation ? <span className="law-exp"> — {l.explanation}</span> : null}</li>
+                      ))}</ul>
+                    </div>
+                  )}
+                  {Array.isArray(aiResult.rights) && aiResult.rights.length > 0 && (
+                    <div className="result-block"><strong>{__t("🛡️ הזכויות שלך")}</strong>
+                      <ul>{aiResult.rights.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                    </div>
+                  )}
                   {Array.isArray(aiResult.steps) && aiResult.steps.length > 0 && (
                     <div className="result-block"><strong>{__t("שלבי טיפול מוצעים")}</strong>
                       <ul>{aiResult.steps.map((s, i) => (<li key={i}>{s}</li>))}</ul>
                     </div>
                   )}
+                  {Array.isArray(aiResult.documentsNeeded) && aiResult.documentsNeeded.length > 0 && (
+                    <div className="result-block"><strong>{__t("📎 מסמכים שכדאי לאסוף")}</strong>
+                      <ul>{aiResult.documentsNeeded.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                    </div>
+                  )}
+                  {Array.isArray(aiResult.deadlines) && aiResult.deadlines.length > 0 && (
+                    <div className="result-block deadlines-block"><strong>{__t("⏰ מועדים חשובים לתשומת לב")}</strong>
+                      <ul>{aiResult.deadlines.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                    </div>
+                  )}
+                  {aiResult.whatToExpect && (
+                    <div className="result-block"><strong>{__t("🔎 מה צפוי בהמשך")}</strong><p>{aiResult.whatToExpect}</p></div>
+                  )}
                   {Array.isArray(aiResult.remedies) && aiResult.remedies.length > 0 && (
                     <div className="result-block"><strong>{__t("סעדים אפשריים")}</strong>
                       <ul>{aiResult.remedies.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                    </div>
+                  )}
+                  {Array.isArray(aiResult.commonMistakes) && aiResult.commonMistakes.length > 0 && (
+                    <div className="result-block mistakes-block"><strong>{__t("⚠️ טעויות נפוצות שכדאי להימנע מהן")}</strong>
+                      <ul>{aiResult.commonMistakes.map((s, i) => (<li key={i}>{s}</li>))}</ul>
+                    </div>
+                  )}
+                  {Array.isArray(aiResult.faq) && aiResult.faq.length > 0 && (
+                    <div className="result-block faq-block"><strong>{__t("❓ שאלות נפוצות")}</strong>
+                      {aiResult.faq.map((f, i) => (
+                        <div className="faq-item" key={i}><p className="faq-q">{f.q}</p><p className="faq-a">{f.a}</p></div>
+                      ))}
                     </div>
                   )}
                   {Array.isArray(aiResult.sources) && aiResult.sources.length > 0 && (
