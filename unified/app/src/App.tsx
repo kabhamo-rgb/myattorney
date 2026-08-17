@@ -1555,9 +1555,21 @@ function App() {
       }
       const data = await response.json()
       if (data && data.analysis) setAiResult(data.analysis)
-      else setAiResult(null)
+      else {
+        // Never leave the answer area blank: show a graceful fallback so the result
+        // doesn't "disappear" when the deep AI analysis is momentarily unavailable.
+        setAiResult({
+          bottomLine: __t("הבדיקה הראשונית שלך מוכנה ומוצגת למטה. ניתוח מעמיק נוסף אינו זמין ברגע זה."),
+          plainSummary: __t("קיבלת מיון ראשוני עם ממצאים, המלצות ומקורות. ניתן לנסות שוב בעוד רגע, להעלות מסמך לבדיקה מדויקת יותר, או לפנות למשרד להמשך טיפול."),
+          disclaimer: __t("מידע כללי בלבד — אינו ייעוץ משפטי מחייב."),
+        })
+      }
     } catch {
-      setAiResult(null)
+      setAiResult({
+        bottomLine: __t("הבדיקה הראשונית שלך מוכנה ומוצגת למטה."),
+        plainSummary: __t("אירעה תקלה זמנית בניתוח המעמיק. ניתן לנסות שוב, או לפנות למשרד להמשך טיפול."),
+        disclaimer: __t("מידע כללי בלבד — אינו ייעוץ משפטי מחייב."),
+      })
     } finally {
       // Keep the animated stages on screen for at least ~4.5s so the experience is visible.
       const elapsed = Date.now() - startedAt
@@ -1604,23 +1616,20 @@ function App() {
     { icon: '📁', label: __t("זכויות בסיום העסקה"), q: __t("סיימתי עבודה. מה מגיע לי — פיצויי פיטורים, הודעה מוקדמת, ניכויים והחזרים?") },
   ]
 
+  // Selecting a topic only PREFILLS the question box as an editable starting point and
+  // focuses it — it does NOT run a check. The client edits/writes their own situation and
+  // submits themselves, so the answer matches what they actually wrote (not the suggestion).
   const runTopicCheck = (prompt: string) => {
     setHeroTab('question')
     setLegalQuestion(prompt)
     if (typeof document !== 'undefined') {
       const el = document.getElementById('legal-tool')
       if (el) el.scrollIntoView({ behavior: 'smooth' })
+      window.setTimeout(() => {
+        const input = document.getElementById('legal-question-input') as HTMLTextAreaElement | null
+        if (input) { input.focus(); try { input.select() } catch { /* noop */ } }
+      }, 350)
     }
-    const run = () => {
-      setIsCheckingQuestion(true)
-      setReviewResult(buildImmediateQuestionAssessment(prompt))
-      setLookupSources(getLegalSources(prompt))
-      setIsCheckingQuestion(false)
-      track('check_completed', { check_type: 'question' })
-      runAiAnalysis({ question: prompt })
-    }
-    if (!consent) { pendingActionRef.current = run; setShowConsent(true); return }
-    run()
   }
 
   const startLiensCheck = () => {
@@ -2600,6 +2609,7 @@ function App() {
                 <label className="tool-question-label">
                   <span>{__t("תאר את השאלה או המצב המשפטי")}</span>
                   <textarea
+                    id="legal-question-input"
                     rows={5}
                     value={legalQuestion}
                     onChange={(event) => setLegalQuestion(event.target.value)}
@@ -2749,7 +2759,7 @@ function App() {
                   {Array.isArray(aiResult.faq) && aiResult.faq.length > 0 && (
                     <div className="result-block faq-block"><strong>{__t("❓ שאלות נפוצות")}</strong>
                       {aiResult.faq.map((f, i) => (
-                        <div className="faq-item" key={i}><p className="faq-q">{f.q}</p><p className="faq-a">{f.a}</p></div>
+                        <div className="ai-faq-item" key={i}><p className="ai-faq-q">{f.q}</p><p className="ai-faq-a">{f.a}</p></div>
                       ))}
                     </div>
                   )}
