@@ -1021,6 +1021,7 @@ function App() {
     disclaimer?: string
   } | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [legalNews, setLegalNews] = useState<{ id?: string; date?: string; source?: string; url?: string; title: string; summary?: string; live?: boolean }[]>([])
   const [garnishProcessing, setGarnishProcessing] = useState(false)
   const [procStage, setProcStage] = useState(0)
   const [countUp, setCountUp] = useState(0)
@@ -1318,6 +1319,16 @@ function App() {
       .then((d) => { if (d && d.googleClientId) setGoogleClientId(d.googleClientId) })
       .catch(() => undefined)
   }, [route, googleClientId])
+
+  // Fetch legal news/updates (curated + live) in the current language, once on load.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${apiBaseUrl}/api/legal-news?lang=${getLang()}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d && Array.isArray(d.items)) setLegalNews(d.items) })
+      .catch(() => undefined)
+    return () => { cancelled = true }
+  }, [])
 
   // Load Google Identity Services and render the sign-in button when selected.
   useEffect(() => {
@@ -2614,6 +2625,21 @@ function App() {
         <a className="primary-btn" href="#legal-tool">{__t("בדיקה מיידית")}</a>
       </header>
 
+      {route !== 'client' && legalNews.length > 0 && (
+        <div className="news-ticker" role="region" aria-label={__t("חדשות ועדכונים משפטיים")}>
+          <span className="news-ticker-tag">📢 {__t("עדכונים משפטיים")}</span>
+          <div className="news-ticker-viewport">
+            <div className="news-ticker-track">
+              {[...legalNews, ...legalNews].map((n, i) => (
+                n.url
+                  ? <a key={i} href={n.url} target="_blank" rel="noreferrer noopener" className="news-ticker-item">{n.date ? <span className="news-ticker-date">{n.date}</span> : null}{n.title}</a>
+                  : <span key={i} className="news-ticker-item">{n.date ? <span className="news-ticker-date">{n.date}</span> : null}{n.title}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <a
         className="whatsapp-fab"
         href={`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MSG}`}
@@ -3084,6 +3110,30 @@ function App() {
             )}
           </div>
         </section>
+
+        {legalNews.length > 0 && (
+          <section id="news" className="section news-section" aria-label={__t("חדשות ועדכונים משפטיים")}>
+            <div className="section-header">
+              <p className="eyebrow">📢 {__t("מתעדכן באופן שוטף")}</p>
+              <h2>{__t("חדשות ועדכונים משפטיים")}</h2>
+              <p>{__t("עדכונים, שינויי חקיקה ופסיקה רלוונטיים — כדי שתמיד תדעו מה חדש בזכויות שלכם.")}</p>
+            </div>
+            <div className="news-grid">
+              {legalNews.slice(0, 6).map((n, i) => (
+                <article key={i} className="news-card">
+                  <div className="news-card-meta">
+                    {n.date ? <span className="news-card-date">🗓️ {n.date}</span> : null}
+                    {n.source ? <span className="news-card-source">{n.source}</span> : null}
+                  </div>
+                  <h3>{n.title}</h3>
+                  {n.summary ? <p>{n.summary}</p> : null}
+                  {n.url ? <a className="news-card-link" href={n.url} target="_blank" rel="noreferrer noopener">{__t("קראו עוד")} ←</a> : null}
+                </article>
+              ))}
+            </div>
+            <p className="news-disclaimer">{__t("העדכונים הם מידע כללי בלבד ואינם מהווים ייעוץ משפטי. ייתכנו שינויים; יש לבדוק מול המקור הרשמי.")}</p>
+          </section>
+        )}
 
         <section className="stats-bar section">
           {stats.map((item) => (

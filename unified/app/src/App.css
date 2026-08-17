@@ -2203,3 +2203,39 @@ html[lang="ar"] .brand-name {
 
 /* legal "last updated" line */
 .legal-updated { font-size: 12px; color: #8a94a6; font-weight: 600; margin: 0 0 6px; }
+
+/* ================= Legal news ticker + section ================= */
+.news-ticker {
+  display: flex; align-items: center; gap: 0; background: #0E2438;
+  border-bottom: 1px solid rgba(180,136,77,.35); overflow: hidden; position: relative;
+}
+.news-ticker-tag {
+  flex: 0 0 auto; background: linear-gradient(135deg,#b4884d,#cca25f); color: #0b1724;
+  font-weight: 800; font-size: 13px; padding: 8px 16px; white-space: nowrap; z-index: 2;
+}
+.news-ticker-viewport { flex: 1 1 auto; overflow: hidden; }
+.news-ticker-track { display: inline-flex; align-items: center; gap: 40px; white-space: nowrap; padding-inline-start: 24px; animation: news-scroll 45s linear infinite; }
+.news-ticker:hover .news-ticker-track { animation-play-state: paused; }
+.news-ticker-item { color: #e7eef7; font-size: 13.5px; text-decoration: none; font-weight: 600; }
+.news-ticker-item:hover { color: #fff; }
+.news-ticker-date { color: #cca25f; font-weight: 700; margin-inline-end: 8px; }
+@keyframes news-scroll { from { transform: translateX(0); } to { transform: translateX(50%); } }
+html[dir="rtl"] .news-ticker-track { animation-name: news-scroll-rtl; }
+@keyframes news-scroll-rtl { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .news-ticker-track { animation: none; } }
+
+.news-section { }
+.news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; margin-top: 8px; }
+.news-card {
+  background: #fff; border: 1px solid #e6ebf2; border-inline-start: 4px solid #b4884d;
+  border-radius: 16px; padding: 18px 20px; box-shadow: 0 10px 26px rgba(15,23,42,0.06);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.news-card-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.news-card-date { font-size: 12.5px; color: #64748b; font-weight: 700; }
+.news-card-source { font-size: 11.5px; font-weight: 800; color: #16324F; background: #eef2f7; border: 1px solid #dbe3ec; padding: 2px 9px; border-radius: 999px; }
+.news-card h3 { margin: 2px 0; font-size: 17px; color: #16324F; line-height: 1.4; }
+.news-card p { margin: 0; color: #475569; font-size: 14px; line-height: 1.7; }
+.news-card-link { margin-top: auto; color: #b4884d; font-weight: 800; text-decoration: none; font-size: 14px; }
+.news-card-link:hover { text-decoration: underline; }
+.news-disclaimer { margin-top: 16px; font-size: 12.5px; color: #94a3b8; text-align: center; }
